@@ -1,0 +1,1 @@
+console.log("Sistema de salas e WebRTC pronto para conexoes!");

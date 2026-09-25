@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const exports={};new Function('exports',ts.transpileModule(fs.readFileSync('app/media/audio.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText)(exports);
+const makeStream=()=>{const t={enabled:true,stopped:false,stop(){this.stopped=true}};return {getTracks:()=>[t],getAudioTracks:()=>[t]}};
+let destinations=[];const ctx={closed:false,createMediaStreamSource(){return {connect(){}}},createGain(){return {gain:{value:0},connect(){}}},createAnalyser(){return {}},createMediaStreamDestination(){const dest={stream:makeStream()};destinations.push(dest);return dest},async close(){this.closed=true}};
+const raw=makeStream(),p=new exports.MicPipeline(raw,ctx,100);
+assert.notEqual(p.out,p.monitor);assert.equal(p.out.getAudioTracks()[0].enabled,false);assert.equal(p.monitor.getAudioTracks()[0].enabled,true);
+p.setEnabled(true);assert.equal(p.out.getAudioTracks()[0].enabled,true);p.setEnabled(false);assert.equal(p.monitor.getAudioTracks()[0].enabled,true);
+p.setGain(500);assert.equal(p.gain.gain.value,2);p.setGain(-3);assert.equal(p.gain.gain.value,0);
+p.dispose();assert.equal(ctx.closed,true);for(const s of [raw,p.out,p.monitor])assert.equal(s.getTracks()[0].stopped,true);
+const el={volume:0,sink:'',async setSinkId(id){this.sink=id}};await exports.routeAudio(el,'headphones',35);assert.equal(el.sink,'headphones');assert.equal(el.volume,.35);await exports.routeAudio(el,'default',200);assert.equal(el.sink,'');assert.equal(el.volume,1);
+await assert.rejects(()=>exports.routeAudio({volume:1},'non-default',50));
+assert.equal(exports.normalizePrefs({gain:NaN,volume:-5,monitorVolume:400,resolution:'fake'}).gain,100);assert.equal(exports.normalizePrefs({volume:-5}).volume,0);
+console.log('PASS: local monitoring remains separate from muted outgoing audio; all tracks and AudioContext released; gain and volume limits; output routing and unsupported-browser error; preference validation.');

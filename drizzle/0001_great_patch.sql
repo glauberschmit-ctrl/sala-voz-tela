@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD `camera` integer DEFAULT 0 NOT NULL;

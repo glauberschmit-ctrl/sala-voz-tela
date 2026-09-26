@@ -33,7 +33,7 @@ jobs:
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
           $tag = "v$version"
-          $files = @(Get-ChildItem release -File | Where-Object { $_.Extension -in '.exe', '.7z' } | ForEach-Object { $_.FullName })
+          $files = @(Get-ChildItem release/nsis-web -File | Where-Object { $_.Extension -in '.exe', '.7z' } | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw 'Instalador ou pacote ausente' }
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) { throw 'Versão já publicada. Aumente a versão para preservar os downloads existentes.' }
@@ -53,7 +53,7 @@ jobs:
           $installer = Join-Path $dir 'Sala-Web-Setup.exe'
           $url = "$($config.build.publish.url)Sala-Web-Setup-$version.exe"
           Invoke-WebRequest $url -OutFile $installer
-          $expected = (Get-FileHash "release/Sala-Web-Setup-$version.exe" -Algorithm SHA256).Hash
+          $expected = (Get-FileHash "release/nsis-web/Sala-Web-Setup-$version.exe" -Algorithm SHA256).Hash
           if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) { throw 'Instalador baixado difere do build' }
           $destination = Join-Path $dir 'installed'
           $process = Start-Process $installer -ArgumentList @('/S', "/D=$destination") -PassThru
@@ -64,5 +64,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Sala-Web-Windows
-          path: desktop/release/Sala-Web-Setup-*.exe
+          path: desktop/release/nsis-web/Sala-Web-Setup-*.exe
           if-no-files-found: error

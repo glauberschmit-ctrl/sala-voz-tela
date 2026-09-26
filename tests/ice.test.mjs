@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+import {createHmac} from 'node:crypto';
+const source=ts.transpileModule(fs.readFileSync('db/ice.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+const exports={};new Function('exports',source)(exports);const {buildIceConfig}=exports;
+assert.equal((await buildIceConfig({},'member')).relayConfigured,false);
+const own=await buildIceConfig({TURN_URLS:'turn:test.example:3478,turns:test.example:443',TURN_SHARED_SECRET:'test-secret'},'member');
+const relay=own.iceServers.at(-1);assert.equal(relay.credential,createHmac('sha1','test-secret').update(relay.username).digest('base64'));assert.equal(own.relayConfigured,true);
+const env={METERED_APP_HOST:'test.metered.live',METERED_TURN_API_KEY:'fake-secret'};
+const provider=await buildIceConfig(env,'member',async url=>{assert.equal(url.hostname,'test.metered.live');assert.equal(url.searchParams.get('apiKey'),'fake-secret');return Response.json([{urls:'turns:test.example:443',username:'temporary',credential:'temporary'}])});
+assert.equal(provider.relayConfigured,true);assert.ok(!JSON.stringify(provider).includes('fake-secret'));
+await assert.rejects(()=>buildIceConfig({...env,METERED_APP_HOST:'attacker.example'},'member'));
+await assert.rejects(()=>buildIceConfig(env,'member',async()=>Response.json([{urls:'https://wrong.example'}])));
+await assert.rejects(()=>buildIceConfig(env,'member',async()=>Response.json([{urls:'stun:test.example'}])));
+await assert.rejects(()=>buildIceConfig(env,'member',async()=>new Response('',{status:401})));
+await assert.rejects(()=>buildIceConfig({TURN_URLS:'turn:test.example'},'member'));
+console.log('PASS: TURN configuration, HMAC credentials, provider validation, missing/invalid credentials, API-key isolation.');

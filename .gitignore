@@ -44,3 +44,7 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Keep setup examples, never runtime credentials.
+!.env.example
+.dev.vars*

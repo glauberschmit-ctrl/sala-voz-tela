@@ -60,7 +60,22 @@ jobs:
           if (!$process.WaitForExit(240000)) { $process.Kill(); throw 'Instalação excedeu 4 minutos' }
           if ($process.ExitCode -ne 0) { throw "Instalação falhou: $($process.ExitCode)" }
           if (!(Test-Path "$destination/Sala.exe")) { throw 'Sala.exe não foi instalado' }
-          'Download público e instalação pela internet: OK'
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon("$destination/Sala.exe")
+          if (!$icon) { throw 'Executável sem ícone' }
+          $bitmap = $icon.ToBitmap()
+          $lime = 0
+          for ($x = 0; $x -lt $bitmap.Width; $x++) {
+            for ($y = 0; $y -lt $bitmap.Height; $y++) {
+              $pixel = $bitmap.GetPixel($x, $y)
+              if ($pixel.R -gt 170 -and $pixel.G -gt 220 -and $pixel.B -lt 140) { $lime++ }
+            }
+          }
+          if ($lime -lt ($bitmap.Width * $bitmap.Height * 0.2)) { throw 'Ícone do Sala não foi gravado no executável' }
+          $bitmap.Dispose()
+          $icon.Dispose()
+          if ((Get-Item "$destination/Sala.exe").VersionInfo.ProductName -ne 'Sala') { throw 'Nome do produto incorreto' }
+          'Download, instalação web, nome do produto e ícone do Sala: OK'
       - uses: actions/upload-artifact@v4
         with:
           name: Sala-Web-Windows

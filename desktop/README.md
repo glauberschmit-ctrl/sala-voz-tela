@@ -34,10 +34,12 @@ Testes automatizados validam a política de origem e permissões. A instalação
 
 APIs oficiais: https://www.electronjs.org/docs/latest/api/desktop-capturer e https://www.electronjs.org/docs/latest/api/session
 
-## Instalador web 0.1.1
+## Instalador web 0.1.2
 
-Baixe `Sala-Web-Setup-0.1.1.exe` em https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.1 . Esse executável pequeno baixa o pacote completo durante a instalação. Precisa de internet e continua sem assinatura digital; não contorna o Controle Inteligente de Aplicativos.
+Baixe `Sala-Web-Setup-0.1.2.exe` em https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.2 . Esse executável pequeno baixa o pacote completo durante a instalação. Precisa de internet e continua sem assinatura digital; não contorna o Controle Inteligente de Aplicativos.
 
 `npm run dist:web` gera o bootstrapper e o pacote `.7z`. Ambos são publicados na mesma release, com endereço específico da versão. O instalador NSIS verifica o hash do pacote baixado. Nunca substitua o pacote de uma versão publicada: aumente a versão e o endereço de publicação juntos.
 
 O workflow testa o download público do instalador e a instalação silenciosa em uma máquina Windows temporária, sem pacote local ao lado do instalador. Isso não testa chamadas, captura do CS2 ou aceitação pelo Smart App Control.
+
+A versão 0.1.2 grava o ícone e os metadados no executável, mantendo apenas a assinatura digital desativada. O teste Windows verifica a identidade visual do ícone extraído do executável instalado e o nome do produto. Instale sobre a versão anterior com o Sala fechado.

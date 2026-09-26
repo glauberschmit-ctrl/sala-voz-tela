@@ -1,0 +1,20 @@
+{
+  "name": "sala-desktop",
+  "productName": "Sala",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sala — voz, câmera e compartilhamento de tela",
+  "author": "Glauber Schmit",
+  "main": "main.cjs",
+  "scripts": {"start": "electron .", "dist:win": "electron-builder --win nsis --x64 --publish never", "test": "node --test policy.test.cjs"},
+  "devDependencies": {"electron": "44.4.5", "electron-builder": "26.15.3"},
+  "build": {
+    "appId": "br.com.sala.desktop",
+    "productName": "Sala",
+    "artifactName": "Sala-Setup-${version}.${ext}",
+    "files": ["*.cjs", "picker.html", "picker.js", "icon.png", "!*.test.cjs"],
+    "directories": {"output": "release"},
+    "win": {"target": "nsis", "icon": "icon.png", "signAndEditExecutable": false},
+    "nsis": {"oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true}
+  }
+}

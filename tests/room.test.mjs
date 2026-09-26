@@ -19,7 +19,8 @@ assert.equal((await request({...auth,action:'signal',target:viewer.id,payload:{t
 const delivered=await request({...va,action:'poll',cursor:0});assert.equal(delivered.data.signals.length,1);assert.equal((await request({...va,action:'poll',cursor:delivered.data.signals[0].id})).data.signals.length,0);
 const viewer2=(await request({action:'join',room:s.room.id,name:'QA 2'})).data;
 assert.equal((await request({...va,action:'signal',target:viewer2.id,payload:{type:'offer',sdp:'not-allowed'}})).status,403);
-for(let i=0;i<3;i++)assert.equal((await request({action:'join',room:s.room.id,name:'QA '+i})).status,200);
+for(let i=0;i<12;i++)assert.equal((await request({action:'join',room:s.room.id,name:'QA '+i})).status,200);
+assert.equal((await request({...auth,action:'poll'})).data.members.length,15);
 assert.equal((await request({action:'join',room:s.room.id,name:'QA overflow'})).status,409);
 // Backgrounded clients can resume without losing their authenticated identity.
 sql.prepare('UPDATE members SET seen=? WHERE id=?').run(Date.now()-240000,viewer.id);
@@ -31,3 +32,15 @@ assert.equal((await request({action:'join',room:s.room.id,name:'Replacement'})).
 assert.equal((await request({...va,action:'poll'})).status,409);
 assert.equal((await request({...auth,action:'leave'})).status,200);assert.equal((await request({...va,action:'poll'})).status,404);assert.equal(sql.prepare('select count(*) as n from members').get().n,0);assert.equal(sql.prepare('select count(*) as n from signals').get().n,0);
 console.log('PASS: creation, invitation, audience permissions, token auth, origin protection, signal delivery and cursor, capacity, room closure and cascade cleanup.');
+
+// Conversation has the same 15-person limit and frees a slot on explicit leave.
+const group=(await request({action:'create',name:'Host',title:'15 pessoas',mode:'conversation'})).data;
+const ga={room:group.room.id,id:group.id,token:group.token};let last;
+for(let i=0;i<14;i++){const result=await request({action:'join',room:group.room.id,name:'Pessoa '+i});assert.equal(result.status,200);last=result.data}
+assert.equal((await request({...ga,action:'poll'})).data.members.length,15);
+assert.equal((await request({action:'join',room:group.room.id,name:'Pessoa 16'})).status,409);
+assert.equal((await request({action:'leave',room:group.room.id,id:last.id,token:last.token})).status,200);
+assert.equal((await request({action:'join',room:group.room.id,name:'Vaga reposta'})).status,200);
+assert.equal((await request({...ga,action:'poll'})).data.members.length,15);
+await request({...ga,action:'leave'});
+console.log('PASS: 15 participants in presentation and conversation, 16th rejected, stale resume capacity and slot reuse.');

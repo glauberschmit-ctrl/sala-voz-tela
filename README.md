@@ -1,6 +1,6 @@
 # Sala — Voz e tela
 
-Aplicativo inicial em português para conversa em grupo ou apresentação. Até seis participantes no total; salas expiram em 12 horas. O anfitrião encerra a sala para todos ao clicar em Encerrar sala. Fechar a janela sem encerrar mantém a sala até expirar. Instalação no Windows por PWA no Chrome/Edge; não inclui instalador nativo EXE.
+Aplicativo inicial em português para conversa em grupo ou apresentação. Até 15 participantes no total; salas expiram em 12 horas. O anfitrião encerra a sala para todos ao clicar em Encerrar sala. Fechar a janela sem encerrar mantém a sala até expirar. Instalação no Windows por PWA no Chrome/Edge; não inclui instalador nativo EXE.
 
 ## Implementação
 Vinext/React, Worker e D1. Sinalização por polling a cada 1,5 segundo. WebRTC em malha com quatro transceptores: microfone, vídeo da tela, áudio da tela e câmera. Microfone começa desligado; captura de tela depende de ação e permissão do usuário. Sem gravação. O navegador determina quais fontes de áudio da tela pode compartilhar.
@@ -9,7 +9,7 @@ Convite com identificador aleatório de 128 bits na URL. Cada participante receb
 
 ## Limites
 - STUN configurado, sem TURN. Redes restritivas e NATs incompatíveis podem impedir mídia mesmo quando a sala carrega.
-- O limite de seis não é uma medição de capacidade. Qualidade depende do upload, computador e quantidade de telas.
+- O limite de 15 não é uma medição de capacidade. Qualidade depende do upload, computador e quantidade de telas.
 - Sem SFU, grandes plateias, gravação ou chat.
 - Uma aba suspensa pode expirar após 60 segundos; reabra a sala.
 - Atualizar a página exige nova entrada; o participante antigo desaparece após 45 segundos.
@@ -92,3 +92,13 @@ Até isso ocorrer, o programa não deve ser descrito como completamente validado
   500 MB conforme o painel observado. A antiga nota 'não configurado' descreve
   o estado anterior. Não foi contratado plano pago. Validação entre os aparelhos
   reais ainda depende de teste de áudio pelos participantes.
+
+## Capacidade de sala
+
+Limite de 15 pessoas no total (anfitrião + 14 convidados), em conversa e
+apresentação. Entrada e retomada respeitam o mesmo limite. O teste de API
+verifica a 15ª entrada, recusa da 16ª e reposição de vaga. Isso valida a
+capacidade de entrada, não desempenho de mídia: a arquitetura continua em malha
+WebRTC, com até 14 conexões por participante em conversa. Áudio/vídeo com 15
+aparelhos simultâneos ainda precisa de validação; múltiplas câmeras e telas
+aumentam bastante o uso de rede e processamento.

@@ -19,8 +19,8 @@ export async function POST(req:Request){
   if(b.action==='join'){
    const name=clean(b.name,40);if(!name)return reply({error:'Digite seu nome.'},400);
    const id=uid(),token=uid()+uid();
-   const result=await d.prepare('INSERT INTO members (id,room,token,name,seen) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<6').bind(id,room.id,token,name,now,room.id,now-180000).run();
-   if(!result.meta.changes)return reply({error:'A sala está cheia (máximo de 6 pessoas).'},409);
+   const result=await d.prepare('INSERT INTO members (id,room,token,name,seen) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15').bind(id,room.id,token,name,now,room.id,now-180000).run();
+   if(!result.meta.changes)return reply({error:'A sala está cheia (máximo de 15 pessoas).'},409);
    return reply({room,id,token});
   }
   const me=await d.prepare('SELECT id,name,seen FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
@@ -33,7 +33,7 @@ export async function POST(req:Request){
   }
   if(b.action==='poll'){
    const canSend=room.mode==='conversation'||me.id===room.host;
-   const resumed=await d.batch([d.prepare('UPDATE members SET seen=?,mic=?,screen=?,camera=? WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<6)').bind(now,canSend&&b.mic?1:0,canSend&&b.screen?1:0,canSend&&b.camera?1:0,me.id,now-180000,room.id,now-180000),d.prepare('DELETE FROM signals WHERE created<?').bind(now-120000)]);
+   const resumed=await d.batch([d.prepare('UPDATE members SET seen=?,mic=?,screen=?,camera=? WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,canSend&&b.mic?1:0,canSend&&b.screen?1:0,canSend&&b.camera?1:0,me.id,now-180000,room.id,now-180000),d.prepare('DELETE FROM signals WHERE created<?').bind(now-120000)]);
    if(!resumed[0].meta.changes)return reply({error:'A sala está cheia. Entre novamente quando houver uma vaga.'},409);
    const [people,messages]=await Promise.all([d.prepare('SELECT id,name,mic,screen,camera FROM members WHERE room=? AND seen>? ORDER BY id').bind(room.id,now-180000).all(),d.prepare('SELECT id,sender,payload FROM signals WHERE room=? AND target=? AND id>? ORDER BY id LIMIT 100').bind(room.id,me.id,Number.isSafeInteger(b.cursor)&&b.cursor>=0?b.cursor:0).all()]);
    return reply({members:people.results,signals:messages.results});

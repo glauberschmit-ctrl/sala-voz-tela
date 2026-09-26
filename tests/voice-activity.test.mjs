@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const {outputText}=ts.transpileModule(fs.readFileSync(new URL('../app/media/voice-activity.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}});
+const {updateVoiceActivity}=await import('data:text/javascript;base64,'+Buffer.from(outputText).toString('base64'));
+const silence=new Float32Array(1024);
+const tone=level=>Float32Array.from({length:1024},(_,i)=>Math.sin(i*.2)*level);
+assert.equal(updateVoiceActivity(silence,100,-Infinity,false).speaking,false);
+assert.equal(updateVoiceActivity(tone(.004),100,-Infinity,false).speaking,false);
+const voice=updateVoiceActivity(tone(.08),100,-Infinity,false);
+assert.equal(voice.speaking,true);
+assert.equal(updateVoiceActivity(silence,250,voice.lastVoice,true).speaking,true);
+assert.equal(updateVoiceActivity(silence,350,voice.lastVoice,true).speaking,false);
+assert.equal(updateVoiceActivity(new Float32Array(),500,-Infinity,false).speaking,false);
+console.log('PASS: silêncio, ruído baixo, áudio presente e pausa de fala');

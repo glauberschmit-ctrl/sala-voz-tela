@@ -33,3 +33,11 @@ Conteúdo remoto sem Node.js, com sandbox e isolamento de contexto. Permissões 
 Testes automatizados validam a política de origem e permissões. A instalação e chamadas reais no Windows, incluindo CS2, ainda precisam ser testadas. Empacotar como aplicativo não resolve por si só problemas de WebRTC, conectividade TURN ou capacidade da rede. A qualidade com 15 pessoas não foi validada.
 
 APIs oficiais: https://www.electronjs.org/docs/latest/api/desktop-capturer e https://www.electronjs.org/docs/latest/api/session
+
+## Instalador web 0.1.1
+
+Baixe `Sala-Web-Setup-0.1.1.exe` em https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.1 . Esse executável pequeno baixa o pacote completo durante a instalação. Precisa de internet e continua sem assinatura digital; não contorna o Controle Inteligente de Aplicativos.
+
+`npm run dist:web` gera o bootstrapper e o pacote `.7z`. Ambos são publicados na mesma release, com endereço específico da versão. O instalador NSIS verifica o hash do pacote baixado. Nunca substitua o pacote de uma versão publicada: aumente a versão e o endereço de publicação juntos.
+
+O workflow testa o download público do instalador e a instalação silenciosa em uma máquina Windows temporária, sem pacote local ao lado do instalador. Isso não testa chamadas, captura do CS2 ou aceitação pelo Smart App Control.

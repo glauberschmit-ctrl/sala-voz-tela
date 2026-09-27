@@ -1,0 +1,8 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+export default function ChatImage({messageId,name,auth}:{messageId:number;name:string;auth:{room:string;id:string;token:string}}){
+ const host=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(false),[url,setUrl]=useState(''),[error,setError]=useState(false),[retry,setRetry]=useState(0);
+ useEffect(()=>{const el=host.current;if(!el)return;if(!window.IntersectionObserver){setVisible(true);return}const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){setVisible(true);observer.disconnect()}},{rootMargin:'150px'});observer.observe(el);return()=>observer.disconnect()},[]);
+ useEffect(()=>{if(!visible)return;const controller=new AbortController();let objectUrl='';setError(false);setUrl('');void (async()=>{try{const response=await fetch('/api/chat-attachment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...auth,action:'download',messageId}),signal:controller.signal});if(!response.ok)throw new Error();const blob=await response.blob();if(controller.signal.aborted)return;objectUrl=URL.createObjectURL(blob);setUrl(objectUrl)}catch{if(!controller.signal.aborted)setError(true)}})();return()=>{controller.abort();if(objectUrl)URL.revokeObjectURL(objectUrl)}},[visible,retry,messageId,auth.room,auth.id,auth.token]);
+ return <div className="chat-image" ref={host}>{url?<><img src={url} alt={name||'Imagem enviada no chat'} loading="lazy"/><a href={url} download={name||'imagem'}>Baixar imagem</a></>:error?<button type="button" onClick={()=>setRetry(n=>n+1)}>Carregar imagem novamente</button>:<span>Carregando imagem…</span>}</div>;
+}

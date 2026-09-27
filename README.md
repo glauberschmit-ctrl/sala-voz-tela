@@ -102,3 +102,11 @@ capacidade de entrada, não desempenho de mídia: a arquitetura continua em malh
 WebRTC, com até 14 conexões por participante em conversa. Áudio/vídeo com 15
 aparelhos simultâneos ainda precisa de validação; múltiplas câmeras e telas
 aumentam bastante o uso de rede e processamento.
+
+## Chat e imagens na sala
+
+Chat de texto autenticado, inclusive para a plateia sem microfone. Enter envia; Shift+Enter cria uma linha. Histórico paginado, mensagens novas, nomes e horários. Limite de 2.000 caracteres e um envio por segundo por participante; repetir um envio após falha não duplica a mensagem.
+
+Imagens JPG, PNG, GIF e WebP de até 5 MB, com animação preservada. Anexos ficam no binding R2 FILES e exigem sessão da mesma sala para leitura. Limite agregado de 100 MB de anexos por sala. Sem acesso público por URL de objeto. Encerrar a sala remove anexos e mensagens; salas expiradas ficam inacessíveis e sua limpeza física ocorre quando novas salas são criadas. O chat não é criptografado ponta a ponta; usa HTTPS e armazenamento do serviço.
+
+No aplicativo Windows 0.1.4, o botão Programa, ao lado de Configurações, permite escolher entre fechar ou minimizar à bandeja ao clicar no X. A escolha é local e persistida. O chat funciona também no navegador e nas versões anteriores do aplicativo, após recarregar.

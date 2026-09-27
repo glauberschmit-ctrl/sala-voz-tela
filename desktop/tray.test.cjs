@@ -21,6 +21,8 @@ test('X esconde; abrir restaura; preferência persiste; sair fecha de verdade', 
  const controls = installTray({ app, window, Tray, Menu: { buildFromTemplate: x => x, getApplicationMenu: () => null }, nativeImage: { createFromPath: () => ({ resize: () => ({}) }) }, dialog: { showMessageBox: async () => {} }, iconPath: 'icon.png', preferencesPath: file });
  const close = () => { prevented = false; window.emit('close', { preventDefault: () => { prevented = true; } }); };
  try {
+  assert.equal(readPreferences(file).closeToTray, false);
+  controls.preferenceItem().click({ checked: true });
   close(); assert.equal(prevented, true); assert.equal(hidden, true); assert.equal(quitCount, 0);
   controls.show(); assert.equal(hidden, false); assert.equal(minimized, false); assert.equal(focused, true);
   controls.preferenceItem().click({ checked: false }); assert.equal(readPreferences(file).closeToTray, false);

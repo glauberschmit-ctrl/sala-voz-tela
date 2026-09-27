@@ -1,0 +1,15 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {AppWindow} from 'lucide-react';
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
+type Preferences={closeToTray:boolean;trayAvailable:boolean;version:string};
+type Desktop={getSettings:()=>Promise<Preferences>;setCloseToTray:(value:boolean)=>Promise<Preferences>};
+export default function ProgramSettings(){
+ const [desktop,setDesktop]=useState<Desktop|null>(null),[open,setOpen]=useState(false),[prefs,setPrefs]=useState<Preferences|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{const bridge=(window as Window&{salaDesktop?:Desktop}).salaDesktop;if(bridge)setDesktop(bridge)},[]);
+ useEffect(()=>{if(!open||!desktop)return;let active=true;setError('');setPrefs(null);void desktop.getSettings().then(p=>{if(active)setPrefs(p)}).catch(()=>{if(active)setError('Não foi possível carregar as preferências. Feche e abra esta janela para tentar novamente.')});return()=>{active=false}},[open,desktop]);
+ async function change(value:string){if(!desktop||busy)return;setBusy(true);setError('');try{setPrefs(await desktop.setCloseToTray(value==='tray'))}catch{setError('Não foi possível salvar. Sua preferência anterior foi mantida.')}finally{setBusy(false)}}
+ if(!desktop)return null;
+ return <><button className="program-button" onClick={()=>setOpen(true)}><AppWindow size={17}/><span>Programa</span></button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="device-dialog"><DialogHeader><DialogTitle>Configurações do programa</DialogTitle><DialogDescription>Escolha como o Sala funciona neste computador.</DialogDescription></DialogHeader>{prefs?<><h3>Ao clicar no X da janela</h3><RadioGroup value={prefs.closeToTray?'tray':'close'} onValueChange={v=>void change(v)} disabled={busy||!prefs.trayAvailable} className="mode-group"><label className={'mode-option '+(!prefs.closeToTray?'active':'')}><span><strong>Fechar o programa</strong><small>Encerra sua participação e interrompe microfone e compartilhamento.</small></span><RadioGroupItem value="close" aria-label="Fechar o programa"/></label><label className={'mode-option '+(prefs.closeToTray?'active':'')}><span><strong>Minimizar para a bandeja</strong><small>Mantém a chamada. Abra novamente pelo ícone perto do relógio.</small></span><RadioGroupItem value="tray" aria-label="Minimizar para a bandeja"/></label></RadioGroup>{!prefs.trayAvailable&&<p className="chat-status">A bandeja está indisponível nesta execução. O X fechará o programa.</p>}<p className="setting-help">Para encerrar completamente, escolha “Sair do Sala” no menu do programa ou no ícone da bandeja.</p><p className="device-status" role="status">{busy?'Salvando…':`Preferência salva neste computador · Sala ${prefs.version}`}</p></>:!error&&<p>Carregando preferências…</p>}{error&&<p className="chat-error" role="alert">{error}</p>}</DialogContent></Dialog></>;
+}

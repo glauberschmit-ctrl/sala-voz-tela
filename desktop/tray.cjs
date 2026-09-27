@@ -1,8 +1,8 @@
 const fs = require('node:fs');
 const { trusted } = require('./policy.cjs');
 function readPreferences(file) {
-  try { const data = JSON.parse(fs.readFileSync(file, 'utf8')); return { closeToTray: data.closeToTray !== false }; }
-  catch { return { closeToTray: true }; }
+  try { const data = JSON.parse(fs.readFileSync(file, 'utf8')); return { closeToTray: data.closeToTray === true }; }
+  catch { return { closeToTray: false }; }
 }
 function micScript(desired = null) {
   return `(() => {
@@ -31,8 +31,9 @@ function installTray({ app, window, Tray, Menu, nativeImage, dialog, iconPath, p
     try {
       fs.writeFileSync(preferencesPath, JSON.stringify({ closeToTray: value }));
       preferences.closeToTray = value;
-    } catch { void dialog.showMessageBox(window, { type: 'warning', message: 'Não foi possível salvar essa preferência.' }); }
+    } catch { void dialog.showMessageBox(window, { type: 'warning', message: 'Não foi possível salvar essa preferência.' }); return false; }
     updateAppMenu();
+    return true;
   };
   function preferenceItem() { return { label: 'Ao fechar, minimizar para a bandeja', type: 'checkbox', checked: preferences.closeToTray, click: item => setCloseToTray(item.checked) }; }
   function updateAppMenu() {
@@ -70,6 +71,6 @@ function installTray({ app, window, Tray, Menu, nativeImage, dialog, iconPath, p
   window.on('session-end', () => { quitting = true; });
   app.on('before-quit', () => { quitting = true; });
   window.on('closed', () => { if (!tray.isDestroyed()) tray.destroy(); });
-  return { show, hide, quit, preferenceItem, openMenu };
+  return { show, hide, quit, preferenceItem, openMenu, setCloseToTray, getCloseToTray: () => preferences.closeToTray };
 }
 module.exports = { installTray, readPreferences, micScript };

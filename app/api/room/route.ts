@@ -1,4 +1,4 @@
-import { db,iceConfig } from '@/db/raw';
+import { db,iceConfig,deleteRoomFiles } from '@/db/raw';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
 const uid=()=>crypto.randomUUID().replaceAll('-','');
 const clean=(v:unknown,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
@@ -10,7 +10,9 @@ export async function POST(req:Request){
   if(b.action==='create'){
    const name=clean(b.name,40),title=clean(b.title,70);if(!name||!title||!['conversation','presentation'].includes(b.mode))return reply({error:'Preencha seu nome, o título e o modo da sala.'},400);
    const room=uid(),id=uid(),token=uid()+uid();
-   await d.batch([d.prepare('DELETE FROM rooms WHERE expires < ?').bind(now),d.prepare('INSERT INTO rooms (id,title,mode,host,expires) VALUES (?,?,?,?,?)').bind(room,title,b.mode,id,now+43200000),d.prepare('INSERT INTO members (id,room,token,name,seen) VALUES (?,?,?,?,?)').bind(id,room,token,name,now)]);
+   const expired=await d.prepare('SELECT id FROM rooms WHERE expires<? LIMIT 20').bind(now).all<{id:string}>();
+   for(const old of expired.results){await deleteRoomFiles(old.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(old.id).run();}
+   await d.batch([d.prepare('INSERT INTO rooms (id,title,mode,host,expires) VALUES (?,?,?,?,?)').bind(room,title,b.mode,id,now+43200000),d.prepare('INSERT INTO members (id,room,token,name,seen) VALUES (?,?,?,?,?)').bind(id,room,token,name,now)]);
    return reply({room:{id:room,title,mode:b.mode,host:id},id,token});
   }
   const room=await d.prepare('SELECT id,title,mode,host,expires FROM rooms WHERE id=? AND expires>?').bind(clean(b.room,32),now).first<any>();
@@ -25,9 +27,30 @@ export async function POST(req:Request){
   }
   const me=await d.prepare('SELECT id,name,seen FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
   if(!me)return reply({error:'Sua conexão expirou. Entre na sala novamente.'},401);
+  if(b.action==='chat_list'||b.action==='chat_send'){
+   if(me.seen<=now-180000)return reply({error:'Reconecte à sala para usar o chat.'},401);
+   if(b.action==='chat_send'){
+    const body=typeof b.body==='string'?b.body.trim():'';
+    const clientId=typeof b.clientId==='string'?b.clientId:'';
+    if(!body||body.length>2000||!/^[a-f0-9]{32}$/.test(clientId))return reply({error:'Escreva uma mensagem de até 2.000 caracteres.'},400);
+    const lookup=()=>d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND sender=? AND client_id=?').bind(room.id,me.id,clientId).first();
+    const existing=await lookup();if(existing)return reply({message:existing});
+    const result=await d.prepare('INSERT INTO chat_messages (room,sender,name,client_id,body,created) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM chat_messages WHERE room=? AND sender=? AND created>?) ON CONFLICT(room,sender,client_id) DO NOTHING').bind(room.id,me.id,me.name,clientId,body,now,room.id,me.id,now-1000).run();
+    const message=await lookup();if(!message&&!result.meta.changes)return reply({error:'Aguarde um segundo antes de enviar outra mensagem.'},429);
+    return reply({message});
+   }
+   const after=Number.isSafeInteger(b.after)&&b.after>=0?b.after:null;
+   const before=Number.isSafeInteger(b.before)&&b.before>0?b.before:null;
+   if(after!==null){
+    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id>? ORDER BY id LIMIT 100').bind(room.id,after).all();
+    return reply({messages:messages.results});
+   }
+   const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
+   return reply({messages:messages.results.slice(0,50).reverse(),hasOlder:messages.results.length>50});
+  }
   if(b.action==='ice')return reply(await iceConfig(me.id));
   if(b.action==='leave'){
-   if(me.id===room.host)await d.prepare('DELETE FROM rooms WHERE id=?').bind(room.id).run();
+   if(me.id===room.host){await deleteRoomFiles(room.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(room.id).run();}
    else await d.prepare('DELETE FROM members WHERE id=?').bind(me.id).run();
    return reply({ok:true});
   }

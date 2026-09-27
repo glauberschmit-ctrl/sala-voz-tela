@@ -10,7 +10,7 @@ Aplicativo Electron que abre o serviço Sala publicado. Compartilha as mesmas sa
 4. Ao compartilhar, selecione uma tela ou janela. O áudio do computador é opcional e inclui todos os sons, não apenas o jogo.
 5. Para CS2 com imagem preta, experimente janela sem bordas e captura da tela.
 
-O menu Sala → Abrir convite copiado lê o convite da área de transferência somente ao clicar nessa opção. Abrir um convite pode encerrar a chamada atual. Por padrão, clicar no X esconde a janela na bandeja e mantém a chamada. Para encerrar, escolha Sair do Sala. Minimizar pelo botão normal mantém a janela na barra de tarefas.
+O menu Sala → Abrir convite copiado lê o convite da área de transferência somente ao clicar nessa opção. Abrir um convite pode encerrar a chamada atual. Em Programa, escolha se o X fecha o aplicativo ou o esconde na bandeja. Para encerrar, escolha Sair do Sala. Minimizar pelo botão normal mantém a janela na barra de tarefas.
 
 Esta versão não tem assinatura digital nem atualização automática do executável. As atualizações do site aparecem ao recarregar. O instalador pode exibir aviso de editor desconhecido. Nenhum certificado ou plano pago foi contratado.
 
@@ -34,9 +34,9 @@ Testes automatizados validam a política de origem e permissões. A instalação
 
 APIs oficiais: https://www.electronjs.org/docs/latest/api/desktop-capturer e https://www.electronjs.org/docs/latest/api/session
 
-## Instalador web 0.1.3
+## Instalador web 0.1.4
 
-Baixe `Sala-Web-Setup-0.1.3.exe` em https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.3 . Esse executável pequeno baixa o pacote completo durante a instalação. Precisa de internet e continua sem assinatura digital; não contorna o Controle Inteligente de Aplicativos.
+Baixe `Sala-Web-Setup-0.1.4.exe` em https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.4 . Esse executável pequeno baixa o pacote completo durante a instalação. Precisa de internet e continua sem assinatura digital; não contorna o Controle Inteligente de Aplicativos.
 
 `npm run dist:web` gera o bootstrapper e o pacote `.7z`. Ambos são publicados na mesma release, com endereço específico da versão. O instalador NSIS verifica o hash do pacote baixado. Nunca substitua o pacote de uma versão publicada: aumente a versão e o endereço de publicação juntos.
 
@@ -48,9 +48,13 @@ A versão 0.1.2 grava o ícone e os metadados no executável, mantendo apenas a 
 
 - Clique no ícone perto do relógio para reabrir o Sala. O Windows pode colocá-lo na seta de ícones ocultos.
 - Botão direito: Abrir Sala, ligar/silenciar microfone, preferência de fechamento e Sair do Sala.
-- Sala → Ao fechar, minimizar para a bandeja vem ativado e é salvo entre execuções. Desative para que o X encerre o aplicativo.
+- Sala → Ao fechar, minimizar para a bandeja é salvo entre execuções; na 0.1.4 vem desativado se ainda não houver uma preferência salva. Desative para que o X encerre o aplicativo.
 - Sala → Minimizar para a bandeja esconde a janela imediatamente, sem sair da sala.
 - O microfone só pode ser controlado quando disponível na sala. Ligar o microfone reabre a janela para exibir permissões ou erros; silenciar pode ser feito em segundo plano.
 - Sair do Sala fecha o processo e interrompe áudio e compartilhamento. O aplicativo não inicia automaticamente com o Windows.
 - Abrir novamente o atalho traz a janela existente, sem iniciar outra instância.
 - O indicador de voz e a chamada continuam dependentes da conexão e dos dispositivos. Suspender o computador interrompe a comunicação.
+
+## Configurações do programa — 0.1.4
+
+O botão Programa aparece ao lado de Configurações, no aplicativo Windows atualizado. Permite escolher Fechar o programa ou Minimizar para a bandeja ao clicar no X. A preferência fica salva no computador; escolhas anteriores são preservadas. A interface usa uma ponte isolada com apenas leitura e alteração dessa preferência, validada na origem e na janela principal.

@@ -36,7 +36,7 @@ app.whenReady().then(() => {
   });
   ses.setDisplayMediaRequestHandler(chooseSource);
   main = new BrowserWindow({ width: 1280, height: 820, minWidth: 700, minHeight: 540, title: 'Sala', icon: path.join(__dirname, 'icon.png'),
-    webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+    webPreferences: { preload: path.join(__dirname, 'app-preload.cjs'), session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
   try {
     trayControls = installTray({ app, window: main, Tray, Menu, nativeImage, dialog, iconPath: path.join(__dirname, 'icon.png'), preferencesPath: path.join(app.getPath('userData'), 'desktop-preferences.json'), onHide: () => pending?.finish({}) });
   } catch {
@@ -74,3 +74,17 @@ ipcMain.on('capture:choose', (event, choice) => {
 });
 ipcMain.on('capture:cancel', event => { if (event.sender === pending?.picker.webContents) pending.finish({}); });
 app.on('window-all-closed', () => app.quit());
+
+function verifySettingsSender(event) {
+ if (!main || event.sender !== main.webContents || event.senderFrame !== main.webContents.mainFrame || !trusted(event.senderFrame.url)) throw new Error('Solicitação inválida');
+}
+ipcMain.handle('program:settings', event => {
+ verifySettingsSender(event);
+ return { closeToTray: trayControls?.getCloseToTray() ?? false, trayAvailable: !!trayControls, version: app.getVersion() };
+});
+ipcMain.handle('program:close-to-tray', (event, value) => {
+ verifySettingsSender(event);
+ if(typeof value !== 'boolean' || !trayControls) throw new Error('Bandeja indisponível');
+ if(!trayControls.setCloseToTray(value)) throw new Error('Não foi possível salvar a preferência');
+ return { closeToTray: trayControls.getCloseToTray(), trayAvailable: true, version: app.getVersion() };
+});

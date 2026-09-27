@@ -1,5 +1,10 @@
-const { app, BrowserWindow, session, desktopCapturer, ipcMain, dialog, Menu, clipboard } = require('electron');
+const { app, BrowserWindow, session, desktopCapturer, ipcMain, dialog, Menu, clipboard, Tray, nativeImage } = require('electron');
 const path = require('node:path');
+const { installTray } = require('./tray.cjs');
+const ownsInstance = app.requestSingleInstanceLock();
+if (!ownsInstance) app.quit();
+let trayControls;
+app.on('second-instance', () => trayControls?.show());
 const { SITE, trusted, allowedPermission } = require('./policy.cjs');
 let main;
 let pending;
@@ -22,6 +27,8 @@ function chooseSource(request, callback) {
   picker.loadFile('picker.html').catch(() => finish({}));
 }
 app.whenReady().then(() => {
+  if (!ownsInstance) return;
+  app.setAppUserModelId('br.com.sala.desktop');
   const ses = session.fromPartition('persist:sala');
   ses.setPermissionCheckHandler((contents, permission, origin) => contents === main?.webContents && allowedPermission(permission, origin));
   ses.setPermissionRequestHandler((contents, permission, callback, details) => {
@@ -30,8 +37,13 @@ app.whenReady().then(() => {
   ses.setDisplayMediaRequestHandler(chooseSource);
   main = new BrowserWindow({ width: 1280, height: 820, minWidth: 700, minHeight: 540, title: 'Sala', icon: path.join(__dirname, 'icon.png'),
     webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+  try {
+    trayControls = installTray({ app, window: main, Tray, Menu, nativeImage, dialog, iconPath: path.join(__dirname, 'icon.png'), preferencesPath: path.join(app.getPath('userData'), 'desktop-preferences.json'), onHide: () => pending?.finish({}) });
+  } catch {
+    void dialog.showMessageBox(main, { type: 'warning', message: 'A bandeja não está disponível. Fechar a janela encerrará o Sala.' });
+  }
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label: 'Sala', submenu: [{ label: 'Início', click: () => main.loadURL(SITE) }, { label: 'Abrir convite copiado', click: async () => { const url = clipboard.readText().trim(); if (trusted(url) && /^[a-f0-9]{32}$/.test(new URLSearchParams(new URL(url).hash.slice(1)).get('sala') || '')) { await main.loadURL(url).then(() => main.webContents.reload()).catch(() => {}); } else dialog.showMessageBox(main, { message: 'Copie um link de convite do Sala e tente novamente.' }); } }, { type: 'separator' }, { role: 'quit', label: 'Sair' }] },
+    { label: 'Sala', submenu: [{ label: 'Início', click: () => main.loadURL(SITE) }, { label: 'Abrir convite copiado', click: async () => { const url = clipboard.readText().trim(); if (trusted(url) && /^[a-f0-9]{32}$/.test(new URLSearchParams(new URL(url).hash.slice(1)).get('sala') || '')) { await main.loadURL(url).then(() => main.webContents.reload()).catch(() => {}); } else dialog.showMessageBox(main, { message: 'Copie um link de convite do Sala e tente novamente.' }); } }, { type: 'separator' }, ...(trayControls ? [{ label: 'Minimizar para a bandeja', click: trayControls.hide }, { ...trayControls.preferenceItem(), id: 'close-to-tray' }, { type: 'separator' }] : []), { role: 'quit', label: 'Sair do Sala' }] },
     { label: 'Editar', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'Exibir', submenu: [{ role: 'reload', label: 'Recarregar' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'togglefullscreen' }] }
   ]));

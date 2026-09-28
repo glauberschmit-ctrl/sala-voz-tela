@@ -50,3 +50,7 @@ Não guardar todos os áudios/vídeos por padrão. Não confundir conteúdo de c
 6. Testar 15 usuários reais, múltiplas salas, redes móveis/NAT, reconexão, latência de moderação e recuperação. Fazer revisão de segurança independente antes de crescimento público.
 
 Não há certificação de conformidade, moderação audiovisual ativa nem garantia de impedir crimes nesta entrega.
+
+## Configuração inicial — 28/09/2026
+
+Responsável informado: Glauber Roberto Scmit. Canal de suporte/privacidade: glauberroberto21@gmail.com. Conta administrativa autorizada no servidor: mesmo e-mail, com autenticação obrigatória. Orçamento inicial informado: R$ 0 para moderação e mídia. Nenhum serviço pago foi contratado nesta atualização. A moderação automática de texto e mídia permanece desativada; denúncias e ações administrativas são manuais. A configuração não garante gratuidade ilimitada da hospedagem ou dos provedores já utilizados.

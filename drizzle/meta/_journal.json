@@ -43,6 +43,13 @@
       "when": 1790625983366,
       "tag": "0005_opposite_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790627220956,
+      "tag": "0006_lush_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

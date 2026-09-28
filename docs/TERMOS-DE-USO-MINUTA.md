@@ -1,12 +1,12 @@
 # Sala — Termos de Uso e Aviso de Privacidade
 
-**Minuta para revisão — 28 de setembro de 2026.** Não é uma declaração de conformidade jurídica. Antes do lançamento comercial, completar a identificação do operador e o canal de suporte/privacidade, definir as bases legais e os prazos aplicáveis, aprovar a política para menores e revisar com assessoria jurídica. Esta minuta descreve os recursos atuais, não uma moderação automática que ainda não esteja ativada.
+**Minuta para revisão — 28 de setembro de 2026.** Não é uma declaração de conformidade jurídica. Antes do lançamento comercial, completar a identificação cadastral do operador, definir as bases legais e os prazos aplicáveis, aprovar a política para menores e revisar com assessoria jurídica. Esta minuta descreve os recursos atuais, não uma moderação automática que ainda não esteja ativada.
 
 ## 1. Operador e contato
 
-Operador responsável: **[NOME OU RAZÃO SOCIAL, CPF/CNPJ, ENDEREÇO]**.
-Suporte, privacidade, recursos e solicitações legais: **[E-MAIL E CANAL OFICIAL]**.
-Estes campos precisam ser preenchidos antes da adoção definitiva destes termos. Nenhuma empresa do usuário foi designada automaticamente como operadora.
+Operador responsável: **Glauber Roberto Scmit**. Identificação cadastral e endereço: **[A COMPLETAR PARA A VERSÃO DEFINITIVA]**.
+Suporte, privacidade, recursos e solicitações legais: **glauberroberto21@gmail.com**.
+O nome e o contato foram informados pelo responsável. Os campos cadastrais pendentes precisam ser completados antes da adoção definitiva destes termos. Nenhuma empresa foi designada automaticamente como operadora.
 
 ## 2. Serviço
 
@@ -14,7 +14,7 @@ O Sala oferece salas temporárias com voz, câmera, compartilhamento de tela, ch
 
 ## 3. Participação e identidade
 
-Atualmente os participantes entram por convite e nome de exibição, sem conta obrigatória. Esse nome não comprova identidade. Não compartilhe tokens de sessão nem convites de salas privadas. A recuperação de sessão é local ao navegador/instalação e pode ser perdida se os dados locais forem apagados. A administração exige autenticação e autorização separadas. Quando contas forem introduzidas, novas regras de autenticação, recuperação, suspensão e privacidade deverão ser informadas.
+Os participantes podem entrar por convite e nome de exibição, sem conta obrigatória. Também podem criar um perfil opcional usando autenticação pelo ChatGPT. O perfil armazena identificador estável fornecido pelo autenticador, e-mail, nome de exibição e datas de criação/atualização; o Sala não recebe a senha do provedor. Login direto com Google não está disponível. O perfil pode ser excluído em Minha conta; essa exclusão não apaga a conta no provedor, registros operacionais sob retenção ou salas já abertas. O perfil ainda não sincroniza salas nem vincula sessões anônimas a uma identidade permanente. Esse nome não comprova identidade. Não compartilhe tokens de sessão nem convites de salas privadas. A recuperação de sessão é local ao navegador/instalação e pode ser perdida se os dados locais forem apagados. A administração exige autenticação e autorização separadas. Mudanças na obrigatoriedade de conta, recuperação, suspensão ou vinculação das sessões serão informadas antes da adoção.
 
 Não há verificação etária implementada. A política de acesso de crianças e adolescentes e as medidas exigidas pela legislação aplicável devem ser definidas antes de oferecer o produto a esse público; a simples declaração de idade não substitui essas medidas.
 

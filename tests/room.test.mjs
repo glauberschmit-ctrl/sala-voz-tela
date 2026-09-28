@@ -91,3 +91,22 @@ assert.equal((await download({room:third.room.id,id:third.id,token:third.token},
 assert.equal(format.imageMime(Buffer.from('GIF89a')), 'image/gif');assert.equal(format.imageMime(Buffer.from('RIFF0000WEBP')),'image/webp');
 assert.equal((await upload(ia,new Uint8Array(5*1024*1024+1),'large.png','e'.repeat(32))).status,400);
 console.log('PASS: private attachments, signature validation, byte integrity, retry deduplication, rate-limit cleanup, room isolation, GIF/WebP recognition and size limit');
+
+// Recovery retains host identity, resets stale signaling and respects capacity/auth.
+const recovery=(await request({action:'create',name:'Host',title:'Recovery',mode:'conversation'})).data;
+const ra={room:recovery.room.id,id:recovery.id,token:recovery.token};
+const recoveryGuest=(await request({action:'join',room:recovery.room.id,name:'Guest'})).data;
+const rga={room:recovery.room.id,id:recoveryGuest.id,token:recoveryGuest.token};
+await request({...ra,action:'poll',mic:true,screen:true,camera:true});
+await request({...rga,action:'signal',target:recovery.id,payload:{type:'offer',sdp:'old-offer'}});
+assert.equal((await request({...ra,token:'bad',action:'resume'})).status,401);
+const restored=await request({...ra,action:'resume'});assert.equal(restored.status,200);assert.equal(restored.data.room.host,recovery.id);
+const hostPoll=(await request({...ra,action:'poll'})).data;assert.equal(hostPoll.members.length,2);assert.equal(hostPoll.signals.length,0);
+assert.equal(hostPoll.members.find(m=>m.id===recovery.id).mic,0);
+const reset=(await request({...rga,action:'poll'})).data.signals;assert.equal(JSON.parse(reset.at(-1).payload).type,'reset');
+sql.prepare('UPDATE members SET seen=? WHERE id=?').run(Date.now()-240000,recovery.id);
+for(let i=0;i<14;i++)assert.equal((await request({action:'join',room:recovery.room.id,name:'Guest '+i})).status,200);
+assert.equal((await request({...ra,action:'resume'})).status,409);
+await request({...rga,action:'leave'});assert.equal((await request({...ra,action:'resume'})).status,200);
+await request({...ra,action:'leave'});assert.equal((await request({...ra,action:'resume'})).status,404);
+console.log('PASS: recovery preserves host, disables media, resets old signals, checks authentication and capacity, rejects closed rooms.');

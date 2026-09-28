@@ -48,6 +48,15 @@ export async function POST(req:Request){
    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
    return reply({messages:messages.results.slice(0,50).reverse(),hasOlder:messages.results.length>50});
   }
+  if(b.action==='resume'){
+   const result=await d.prepare('UPDATE members SET seen=?,mic=0,screen=0,camera=0 WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,me.id,now-180000,room.id,now-180000).run();
+   if(!result.meta.changes)return reply({error:'A sala está cheia. Tente voltar quando houver uma vaga.'},409);
+   await d.batch([
+    d.prepare('DELETE FROM signals WHERE room=? AND (target=? OR sender=?)').bind(room.id,me.id,me.id),
+    d.prepare('INSERT INTO signals (room,sender,target,payload,created) SELECT ?,?,id,?,? FROM members WHERE room=? AND id<>? AND seen>? AND (?=1 OR id=?)').bind(room.id,me.id,JSON.stringify({type:'reset'}),now,room.id,me.id,now-180000,room.mode==='conversation'||me.id===room.host?1:0,room.host)
+   ]);
+   return reply({room});
+  }
   if(b.action==='ice')return reply(await iceConfig(me.id));
   if(b.action==='leave'){
    if(me.id===room.host){await deleteRoomFiles(room.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(room.id).run();}

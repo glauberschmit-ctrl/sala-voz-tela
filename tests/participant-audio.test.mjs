@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const mod={};new Function('exports',ts.transpileModule(fs.readFileSync('app/media/participant-audio.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(mod);
+const {normalizeParticipant:n,participantVolume:v,participantDefaults:d}=mod;
+assert.deepEqual(n(null),d);assert.deepEqual(n({voice:200,screen:-30,muted:'yes',hideCamera:true}),{voice:100,screen:0,muted:false,hideCamera:true});
+assert.equal(n({voice:NaN}).voice,100);
+const alice=n({voice:25,screen:60}),bob=n({voice:100,screen:100});
+assert.equal(v(80,alice,'voice',true),20);assert.equal(v(80,alice,'screen',true),48);assert.equal(v(80,bob,'voice',true),80);
+assert.equal(v(80,{...alice,muted:true},'voice',true),0);assert.equal(v(80,{...alice,muted:true},'screen',true),0);
+assert.equal(v(80,alice,'voice',false),0);assert.equal(v(0,bob,'screen',true),0);assert.equal(v(80,alice,'voice',true),20);
+console.log('PASS: independent participant voice/screen mix, master volume, local mute, inactive room silence, normalization and restore defaults.');

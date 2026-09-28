@@ -1,19 +1,22 @@
+import {audit,observe,requestLimit,moderateText} from '@/db/operations';
 import { db,iceConfig,deleteRoomFiles } from '@/db/raw';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
 const uid=()=>crypto.randomUUID().replaceAll('-','');
 const clean=(v:unknown,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
-export async function POST(req:Request){
+export const POST=(req:Request)=>observe(req,handle,'/api/room');
+async function handle(req:Request){
  try{
   const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
   const raw=await req.text();if(raw.length>70000)return reply({error:'Pedido muito grande.'},413);
   const b=JSON.parse(raw),d=db(),now=Date.now();
+  if(['create','join'].includes(b.action)&&await requestLimit(req,b.action))return reply({error:'Muitas tentativas. Aguarde um minuto.'},429);
   if(b.action==='create'){
    const name=clean(b.name,40),title=clean(b.title,70);if(!name||!title||!['conversation','presentation'].includes(b.mode))return reply({error:'Preencha seu nome, o título e o modo da sala.'},400);
    const room=uid(),id=uid(),token=uid()+uid();
    const expired=await d.prepare('SELECT id FROM rooms WHERE expires<? LIMIT 20').bind(now).all<{id:string}>();
    for(const old of expired.results){await deleteRoomFiles(old.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(old.id).run();}
    await d.batch([d.prepare('INSERT INTO rooms (id,title,mode,host,expires) VALUES (?,?,?,?,?)').bind(room,title,b.mode,id,now+43200000),d.prepare('INSERT INTO members (id,room,token,name,seen) VALUES (?,?,?,?,?)').bind(id,room,token,name,now)]);
-   return reply({room:{id:room,title,mode:b.mode,host:id},id,token});
+   await audit('room.created',id,room,200);return reply({room:{id:room,title,mode:b.mode,host:id},id,token});
   }
   const room=await d.prepare('SELECT id,title,mode,host,expires FROM rooms WHERE id=? AND expires>?').bind(clean(b.room,32),now).first<any>();
   if(!room)return reply({error:'Sala encerrada ou link inválido.'},404);
@@ -23,10 +26,11 @@ export async function POST(req:Request){
    const id=uid(),token=uid()+uid();
    const result=await d.prepare('INSERT INTO members (id,room,token,name,seen) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15').bind(id,room.id,token,name,now,room.id,now-180000).run();
    if(!result.meta.changes)return reply({error:'A sala está cheia (máximo de 15 pessoas).'},409);
-   return reply({room,id,token});
+   await audit('room.joined',id,room.id,200);return reply({room,id,token});
   }
-  const me=await d.prepare('SELECT id,name,seen FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
+  const me=await d.prepare('SELECT id,name,seen,suspended,mic,screen,camera,recording FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
   if(!me)return reply({error:'Sua conexão expirou. Entre na sala novamente.'},401);
+  if(me.suspended)return reply({error:'Esta sessão foi suspensa pela administração.'},403);
   if(b.action==='chat_list'||b.action==='chat_send'){
    if(me.seen<=now-180000)return reply({error:'Reconecte à sala para usar o chat.'},401);
    if(b.action==='chat_send'){
@@ -35,9 +39,10 @@ export async function POST(req:Request){
     if(!body||body.length>2000||!/^[a-f0-9]{32}$/.test(clientId))return reply({error:'Escreva uma mensagem de até 2.000 caracteres.'},400);
     const lookup=()=>d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND sender=? AND client_id=?').bind(room.id,me.id,clientId).first();
     const existing=await lookup();if(existing)return reply({message:existing});
+    await moderateText(body,me.id,room.id);
     const result=await d.prepare('INSERT INTO chat_messages (room,sender,name,client_id,body,created) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM chat_messages WHERE room=? AND sender=? AND created>?) ON CONFLICT(room,sender,client_id) DO NOTHING').bind(room.id,me.id,me.name,clientId,body,now,room.id,me.id,now-1000).run();
     const message=await lookup();if(!message&&!result.meta.changes)return reply({error:'Aguarde um segundo antes de enviar outra mensagem.'},429);
-    return reply({message});
+    await audit('chat.sent',me.id,room.id,200,String(message?.id??''));return reply({message});
    }
    const after=Number.isSafeInteger(b.after)&&b.after>=0?b.after:null;
    const before=Number.isSafeInteger(b.before)&&b.before>0?b.before:null;
@@ -48,27 +53,29 @@ export async function POST(req:Request){
    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
    return reply({messages:messages.results.slice(0,50).reverse(),hasOlder:messages.results.length>50});
   }
+  if(b.action==='rename'){if(me.id!==room.host)return reply({error:'Somente o anfitrião pode renomear a sala.'},403);const title=clean(b.title,70);if(!title)return reply({error:'Digite um nome para a sala.'},400);await d.prepare('UPDATE rooms SET title=? WHERE id=?').bind(title,room.id).run();await audit('room.renamed',me.id,room.id,200);return reply({room:{...room,title}})}
   if(b.action==='resume'){
-   const result=await d.prepare('UPDATE members SET seen=?,mic=0,screen=0,camera=0 WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,me.id,now-180000,room.id,now-180000).run();
+   const result=await d.prepare('UPDATE members SET seen=?,mic=0,screen=0,camera=0,recording=0 WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,me.id,now-180000,room.id,now-180000).run();
    if(!result.meta.changes)return reply({error:'A sala está cheia. Tente voltar quando houver uma vaga.'},409);
    await d.batch([
     d.prepare('DELETE FROM signals WHERE room=? AND (target=? OR sender=?)').bind(room.id,me.id,me.id),
     d.prepare('INSERT INTO signals (room,sender,target,payload,created) SELECT ?,?,id,?,? FROM members WHERE room=? AND id<>? AND seen>? AND (?=1 OR id=?)').bind(room.id,me.id,JSON.stringify({type:'reset'}),now,room.id,me.id,now-180000,room.mode==='conversation'||me.id===room.host?1:0,room.host)
    ]);
-   return reply({room});
+   await audit('room.resumed',me.id,room.id,200);return reply({room});
   }
   if(b.action==='ice')return reply(await iceConfig(me.id));
   if(b.action==='leave'){
    if(me.id===room.host){await deleteRoomFiles(room.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(room.id).run();}
    else await d.prepare('DELETE FROM members WHERE id=?').bind(me.id).run();
-   return reply({ok:true});
+   await audit('room.left',me.id,room.id,200);return reply({ok:true});
   }
   if(b.action==='poll'){
    const canSend=room.mode==='conversation'||me.id===room.host;
-   const resumed=await d.batch([d.prepare('UPDATE members SET seen=?,mic=?,screen=?,camera=? WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,canSend&&b.mic?1:0,canSend&&b.screen?1:0,canSend&&b.camera?1:0,me.id,now-180000,room.id,now-180000),d.prepare('DELETE FROM signals WHERE created<?').bind(now-120000)]);
+   const resumed=await d.batch([d.prepare('UPDATE members SET seen=?,mic=?,screen=?,camera=?,recording=? WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,canSend&&b.mic?1:0,canSend&&b.screen?1:0,canSend&&b.camera?1:0,b.recording===true?1:0,me.id,now-180000,room.id,now-180000),d.prepare('DELETE FROM signals WHERE created<?').bind(now-120000)]);
    if(!resumed[0].meta.changes)return reply({error:'A sala está cheia. Entre novamente quando houver uma vaga.'},409);
-   const [people,messages]=await Promise.all([d.prepare('SELECT id,name,mic,screen,camera FROM members WHERE room=? AND seen>? ORDER BY id').bind(room.id,now-180000).all(),d.prepare('SELECT id,sender,payload FROM signals WHERE room=? AND target=? AND id>? ORDER BY id LIMIT 100').bind(room.id,me.id,Number.isSafeInteger(b.cursor)&&b.cursor>=0?b.cursor:0).all()]);
-   return reply({members:people.results,signals:messages.results});
+   for(const [key,value] of Object.entries({mic:canSend&&b.mic?1:0,screen:canSend&&b.screen?1:0,camera:canSend&&b.camera?1:0,recording:b.recording===true?1:0}))if(me[key]!==value)await audit('media.'+key+(value?'.started':'.stopped'),me.id,room.id,200);
+   const [people,messages]=await Promise.all([d.prepare('SELECT id,name,mic,screen,camera,recording FROM members WHERE room=? AND seen>? ORDER BY id').bind(room.id,now-180000).all(),d.prepare('SELECT id,sender,payload FROM signals WHERE room=? AND target=? AND id>? ORDER BY id LIMIT 100').bind(room.id,me.id,Number.isSafeInteger(b.cursor)&&b.cursor>=0?b.cursor:0).all()]);
+   return reply({room,members:people.results,signals:messages.results});
   }
   if(b.action==='signal'){
    const target=clean(b.target,32);if(target===me.id)return reply({error:'Destino inválido.'},400);
@@ -80,5 +87,5 @@ export async function POST(req:Request){
    return reply({ok:true});
   }
   return reply({error:'Ação inválida.'},400);
- }catch(e){console.error('room-api',e);return reply({error:'Não foi possível acessar a sala. Tente novamente.'},503);}
+ }catch(e:any){if(e.status)return reply({error:e.message},e.status);console.error('room-api',e);return reply({error:'Não foi possível acessar a sala. Tente novamente.'},503);}
 }

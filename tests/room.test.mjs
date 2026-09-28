@@ -5,7 +5,7 @@ import ts from 'typescript';
 const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())sql.exec(fs.readFileSync('drizzle/'+file,'utf8'));
 const store={prepare(query){let args=[];return {bind(...values){args=values;return this},async first(){return sql.prepare(query).get(...args)??null},async all(){return {results:sql.prepare(query).all(...args)}},async run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes)}}}}},async batch(stmts){return Promise.all(stmts.map(s=>s.run()))}};
 const output=ts.transpileModule(fs.readFileSync('app/api/room/route.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-const exports={};new Function('require','exports',output)(name=>{if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
+const exports={};new Function('require','exports',output)(name=>{if(name==='@/db/operations')return {audit:async()=>{},requestLimit:async()=>false,moderateText:async()=>{},observe:async(req,fn)=>fn(req)};if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
 async function request(b,origin='https://test.example'){const r=await exports.POST(new Request('https://test.example/api/room',{method:'POST',headers:{'content-type':'application/json',origin},body:JSON.stringify(b)}));return {status:r.status,data:await r.json()}}
 assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conversation'},'https://other.example')).status,403);
 const c=await request({action:'create',name:'QA Host',title:'QA Apresentação',mode:'presentation'});assert.equal(c.status,200);
@@ -74,7 +74,7 @@ console.log('PASS: chat authentication, room isolation, audience access, idempot
 const objects=new Map();
 const bucket={async put(key,data){objects.set(key,Uint8Array.from(data))},async delete(key){objects.delete(key)},async get(key){const data=objects.get(key);return data?{body:data,size:data.length}:null}};
 const format={};new Function('exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/image-format.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(format);
-const attachmentRoute={};new Function('require','exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='@/db/raw'?{db:()=>store,files:()=>bucket}:format,attachmentRoute);
+const attachmentRoute={};new Function('require','exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='@/db/raw'?{db:()=>store,files:()=>bucket}:name==='@/db/operations'?{audit:async()=>{},moderateText:async()=>{},operationalConfig:()=>({moderationRequired:false}),observe:async(req,fn)=>fn(req)}:format,attachmentRoute);
 const ia={room:other.room.id,id:other.id,token:other.token};
 async function upload(auth,bytes,name,client){const form=new FormData();for(const [key,value] of Object.entries({...auth,clientId:client,body:'Legenda'}))form.append(key,value);form.append('file',new Blob([bytes]),name);const response=await attachmentRoute.POST(new Request('https://test.example/api/chat-attachment',{method:'POST',body:form}));return {status:response.status,data:await response.json()}}
 const png=fs.readFileSync('public/icon-192.png');
@@ -110,3 +110,15 @@ assert.equal((await request({...ra,action:'resume'})).status,409);
 await request({...rga,action:'leave'});assert.equal((await request({...ra,action:'resume'})).status,200);
 await request({...ra,action:'leave'});assert.equal((await request({...ra,action:'resume'})).status,404);
 console.log('PASS: recovery preserves host, disables media, resets old signals, checks authentication and capacity, rejects closed rooms.');
+
+const renameRoom=(await request({action:'create',name:'Owner',title:'Before',mode:'conversation'})).data;
+const rn={room:renameRoom.room.id,id:renameRoom.id,token:renameRoom.token};
+const rv=(await request({action:'join',room:rn.room,name:'Guest'})).data;
+assert.equal((await request({action:'rename',room:rn.room,id:rv.id,token:rv.token,title:'No'})).status,403);
+assert.equal((await request({...rn,action:'rename',title:'After'})).status,200);
+assert.equal((await request({...rn,action:'poll',recording:true})).data.room.title,'After');
+assert.equal((await request({...rn,action:'poll',recording:true})).data.members.find(m=>m.id===rn.id).recording,1);
+sql.prepare('UPDATE members SET suspended=1 WHERE id=?').run(rn.id);
+assert.equal((await request({...rn,action:'poll'})).status,403);
+assert.equal((await request({...rn,action:'chat_send',body:'Blocked',clientId:'f'.repeat(32)})).status,403);
+console.log('PASS: host-only rename, recording notice and suspended-session enforcement.');

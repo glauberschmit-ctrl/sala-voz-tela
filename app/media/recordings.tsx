@@ -1,0 +1,23 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {Download,Square,Video,Trash2} from 'lucide-react';
+import {startScreenRecording} from './screen-recording';
+export type RecordRequest={room:string;roomTitle:string;person:string;video:MediaStreamTrack;audio?:MediaStreamTrack};
+type Clip={id:string;url:string;name:string;seconds:number;size:number;downloaded:boolean};
+export function useRecordings(){
+ const [recording,setRecording]=useState<{room:string;person:string;started:number}|null>(null),[clips,setClips]=useState<Clip[]>([]),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const controller=useRef<ReturnType<typeof startScreenRecording>|null>(null),urls=useRef(new Set<string>());
+ const unsaved=useRef(false);unsaved.current=!!recording||clips.some(c=>!c.downloaded);
+ useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(unsaved.current){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',before);return()=>{window.removeEventListener('beforeunload',before);controller.current?.dispose();urls.current.forEach(url=>URL.revokeObjectURL(url))}},[]);
+ function start(request:RecordRequest){if(controller.current)return;setError('');setNotice('');try{if(clips.length>=3)throw new Error('Baixe e remova uma gravação da lista antes de iniciar outra.');const started=Date.now();const base=(request.roomTitle+'-'+request.person).normalize('NFKD').replace(/[^a-zA-Z0-9-]/g,'-').slice(0,90)||'Sala';controller.current=startScreenRecording(request.video,request.audio,({blob,seconds})=>{const url=URL.createObjectURL(blob);urls.current.add(url);setClips(old=>[...old,{id:String(started),url,name:`${base}-${new Date(started).toISOString().replace(/[:.]/g,'-')}.${blob.type.includes('mp4')?'mp4':'webm'}`,seconds,size:blob.size,downloaded:false}]);controller.current=null;setRecording(null)},message=>{setError(message);controller.current=null;setRecording(null)},()=>setNotice('Limite de 30 minutos ou 512 MB atingido. Baixe este trecho e inicie outro.'));setRecording({room:request.room,person:request.person,started})}catch(e){setError(e instanceof Error?e.message:'Não foi possível gravar.')}}
+ function stop(){controller.current?.stop()}
+ function remove(id:string){const clip=clips.find(c=>c.id===id);if(!clip)return;if(!clip.downloaded&&!window.confirm('Remover este vídeo sem baixar? Ele não poderá ser recuperado.'))return;URL.revokeObjectURL(clip.url);urls.current.delete(clip.url);setClips(old=>old.filter(c=>c.id!==id))}
+ return {recording,clips,error,notice,start,stop,remove,setError,download:(id:string)=>setClips(old=>old.map(c=>c.id===id?{...c,downloaded:true}:c))};
+}
+export type Recordings=ReturnType<typeof useRecordings>;
+export function RecordingsPanel({r}:{r:Recordings}){
+ const [now,setNow]=useState(Date.now());useEffect(()=>{if(!r.recording)return;const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[r.recording]);
+ if(!r.recording&&!r.clips.length&&!r.error&&!r.notice)return null;
+ const elapsed=r.recording?Math.max(0,Math.floor((now-r.recording.started)/1000)):0;
+ return <section className="recordings-panel" aria-label="Gravações"><h2><Video size={18}/> Gravações</h2>{r.recording&&<div className="recording-live"><span>● Gravando a tela de {r.recording.person} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span><button className="secondary" onClick={r.stop}><Square size={15}/> Parar gravação</button></div>}{r.clips.map(c=><div className="recording-file" key={c.id}><span>{c.name}<small>{c.seconds}s · {(c.size/1024/1024).toFixed(1)} MB</small></span><a className="secondary" href={c.url} download={c.name} onClick={()=>r.download(c.id)}><Download size={16}/> Baixar VOD</a><button className="icon-button" aria-label={`Remover ${c.name}`} onClick={()=>r.remove(c.id)}><Trash2 size={17}/></button></div>)}<p>Vídeos ficam temporariamente neste aparelho. Baixe antes de fechar o programa. Cada trecho: até 30 minutos ou 512 MB.</p>{r.notice&&<p role="status">{r.notice}</p>}{r.error&&<p className="chat-error" role="alert">{r.error}<button className="icon-button" aria-label="Fechar erro de gravação" onClick={()=>r.setError('')}> ×</button></p>}</section>;
+}

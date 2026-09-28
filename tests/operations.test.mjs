@@ -1,0 +1,14 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import ts from 'typescript';
+const sql=new DatabaseSync(':memory:');for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())sql.exec(fs.readFileSync('drizzle/'+file,'utf8'));
+const d={prepare(query){let args=[];return {bind(...v){args=v;return this},async first(){return sql.prepare(query).get(...args)},async all(){return {results:sql.prepare(query).all(...args)}},async run(){return {meta:{changes:Number(sql.prepare(query).run(...args).changes)}}}}},async batch(s){return Promise.all(s.map(v=>v.run()))}};
+const env={};function load(file,imports){const mod={};new Function('require','exports',ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{if(!(name in imports))throw Error('Unknown import '+name);return imports[name]},mod);return mod}
+const ops=load('db/operations.ts',{'cloudflare:workers':{env},'./raw':{db:()=>d}});
+assert.equal(await ops.limited('test',2,60),false);assert.equal(await ops.limited('test',2,60),false);assert.equal(await ops.limited('test',2,60),true);
+await ops.audit('test.event','actor','room',200,'safe metadata');assert.equal(sql.prepare('select count(*) n from audit_events').get().n,1);
+await ops.observe(new Request('https://test/api'),async()=>Response.json({ok:true}),'/api/test');assert.equal(sql.prepare('select requests from operational_counters').get().requests,1);
+env.SALA_MODERATION_REQUIRED='true';await assert.rejects(ops.moderateText('hello','actor','room'),e=>e.status===503);
+env.SALA_MODERATION_API_KEY='test-only';const originalFetch=globalThis.fetch;globalThis.fetch=async()=>Response.json({results:[{flagged:true,categories:{violence:true}}]});await assert.rejects(ops.moderateText('flagged test','actor','room'),e=>e.status===422);globalThis.fetch=async()=>{throw Error('offline')};await assert.rejects(ops.moderateText('hello','actor','room'),e=>e.status===503);globalThis.fetch=originalFetch;
+let user=null;const admin=load('app/api/admin/route.ts',{'@/app/chatgpt-auth':{getChatGPTUser:async()=>user},'@/db/raw':{db:()=>d,deleteRoomFiles:async()=>{}},'@/db/operations':ops});
+assert.equal((await admin.GET()).status,403);user={userId:'u1',email:'outsider@example.test'};assert.equal((await admin.GET()).status,403);env.SALA_ADMIN_EMAILS='admin@example.test';assert.equal((await admin.GET()).status,403);user={userId:'a1',email:'admin@example.test'};assert.equal((await admin.GET()).status,200);
+assert.equal((await admin.POST(new Request('https://test/api/admin',{method:'POST',headers:{origin:'https://evil.test'},body:'{}'}))).status,403);
+console.log('PASS: server rate limit, operational counters, audit, moderation disabled/flagged/outage fail-closed, admin allowlist and cross-origin rejection.');

@@ -12,7 +12,7 @@ assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conver
 const c=await request({action:'create',name:'QA Host',title:'QA Apresentação',mode:'presentation'});assert.equal(c.status,200);
 const s=c.data,auth={room:s.room.id,id:s.id,token:s.token};
 const viewer=(await request({action:'join',room:s.room.id,name:'QA Viewer'})).data,va={room:s.room.id,id:viewer.id,token:viewer.token};
-loginUser=null;assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conversation'})).status,401);assert.equal((await request({...va,action:'poll'})).status,401);loginUser={userId:'other-account',email:'other@example.test'};assert.equal((await request({...va,action:'poll'})).status,403);loginUser={userId:'test-account',email:'test@example.test'};
+loginUser=null;const guestRoom=await request({action:'create',name:'Guest',title:'No login',mode:'conversation'});assert.equal(guestRoom.status,200);const anonymousAuth={room:guestRoom.data.room.id,id:guestRoom.data.id,token:guestRoom.data.token};assert.equal((await request({...anonymousAuth,action:'poll'})).status,200);await request({...anonymousAuth,action:'leave'});assert.equal((await request({...va,action:'poll'})).status,403);loginUser={userId:'other-account',email:'other@example.test'};assert.equal((await request({...va,action:'poll'})).status,403);loginUser={userId:'test-account',email:'test@example.test'};
 const poll=await request({...va,action:'poll',mic:true,screen:true,camera:true,cursor:0});const actual=poll.data.members.find(x=>x.id===viewer.id);assert.equal(actual.mic,0);assert.equal(actual.screen,0);assert.equal(actual.camera,0);
 assert.equal((await request({...auth,token:'invalid',action:'poll'})).status,401);
 assert.equal((await request({...auth,token:'invalid',action:'ice'})).status,401);
@@ -82,6 +82,7 @@ const attachmentRoute={};new Function('require','exports',ts.transpileModule(fs.
 const ia={room:other.room.id,id:other.id,token:other.token};
 async function upload(auth,bytes,name,client){const form=new FormData();for(const [key,value] of Object.entries({...auth,clientId:client,body:'Legenda'}))form.append(key,value);form.append('file',new Blob([bytes]),name);const response=await attachmentRoute.POST(new Request('https://test.example/api/chat-attachment',{method:'POST',body:form}));return {status:response.status,data:await response.json()}}
 const png=fs.readFileSync('public/icon-192.png');
+loginUser=null;const anonymousAttachment=(await request({action:'create',name:'Guest',title:'Attachment guest',mode:'conversation'})).data;assert.equal((await upload({room:anonymousAttachment.room.id,id:anonymousAttachment.id,token:anonymousAttachment.token},png,'guest.png','f'.repeat(32))).status,200);objects.clear();loginUser={userId:'test-account',email:'test@example.test'};
 assert.equal((await upload({...ia,token:'bad'},png,'logo.png','c'.repeat(32))).status,401);
 assert.equal((await upload(ia,Buffer.from('<svg onload="alert(1)"/>'),'fake.png','c'.repeat(32))).status,400);
 const image=await upload(ia,png,'logo.png','c'.repeat(32));assert.equal(image.status,200);assert.equal(image.data.message.attachmentMime,'image/png');assert.equal(objects.size,1);

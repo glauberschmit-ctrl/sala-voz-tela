@@ -70,3 +70,7 @@ Verificação: testes de API/permissões e parâmetros de qualidade; navegador g
 Rotas de sala, chat, anexos e denúncias exigem identidade da autenticação ChatGPT fornecida pelo dispatcher. Cada membro tem account_id; tokens de participação só funcionam com a mesma conta. A tela inicial apresenta login para anônimos, preservando o convite no retorno. Preferências de salas são separadas por conta neste aparelho. Sessões anteriores exigem nova entrada pelo convite. Não há senha armazenada pelo Sala nem login direto Google.
 
 Limitação conhecida: Windows 0.1.4 bloqueia redirecionamentos de autenticação externos; até atualizar o cliente, usar o navegador. A tela orienta a copiar o endereço. Isso substitui a indicação anterior de entrada anônima disponível. O login não corrige falhas do transporte WebRTC.
+
+## Correção: login opcional
+
+Por solicitação do responsável, a entrada por nome e convite foi restaurada. Esta seção substitui a exigência de login descrita acima. Convidados podem usar salas, chat, anexos e denúncias com seus tokens de participação. Sessões criadas com login continuam exigindo a mesma conta. O painel administrativo e os perfis continuam protegidos por autenticação. Windows 0.1.4 volta a acessar salas como convidado; login no instalador continua pendente.

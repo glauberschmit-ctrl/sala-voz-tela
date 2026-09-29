@@ -14,7 +14,7 @@ export const POST=(req:Request)=>observe(req,handle,'/api/chat-attachment');
 async function handle(req:Request){
  try{
   const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
-  const user=await getChatGPTUser();if(!user)return reply({error:'Entre na sua conta.'},401);
+  const user=await getChatGPTUser();
   const bytes=await boundedBody(req);const contentType=req.headers.get('content-type')||'';
   let b:any,file:File|null=null;
   if(contentType.startsWith('multipart/form-data')){
@@ -26,7 +26,7 @@ async function handle(req:Request){
   const d=db(),now=Date.now();
   const room=await d.prepare('SELECT id FROM rooms WHERE id=? AND expires>?').bind(b.room,now).first();
   if(!room)return reply({error:'Sala encerrada.'},404);
-  const me=await d.prepare('SELECT id,name FROM members WHERE room=? AND id=? AND token=? AND seen>? AND suspended=0 AND account_id=?').bind(b.room,b.id,b.token,now-180000,user.userId).first<{id:string;name:string}>();
+  const me=await d.prepare('SELECT id,name FROM members WHERE room=? AND id=? AND token=? AND seen>? AND suspended=0 AND (account_id IS NULL OR account_id=?)').bind(b.room,b.id,b.token,now-180000,user?.userId??null).first<{id:string;name:string}>();
   if(!me)return reply({error:'Reconecte à sala para acessar anexos.'},401);
   if(b.action==='download'){
    if(!Number.isSafeInteger(b.messageId))return reply({error:'Anexo inválido.'},400);

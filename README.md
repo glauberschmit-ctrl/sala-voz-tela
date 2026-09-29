@@ -110,3 +110,11 @@ Chat de texto autenticado, inclusive para a plateia sem microfone. Enter envia; 
 Imagens JPG, PNG, GIF e WebP de até 5 MB, com animação preservada. Anexos ficam no binding R2 FILES e exigem sessão da mesma sala para leitura. Limite agregado de 100 MB de anexos por sala. Sem acesso público por URL de objeto. Encerrar a sala remove anexos e mensagens; salas expiradas ficam inacessíveis e sua limpeza física ocorre quando novas salas são criadas. O chat não é criptografado ponta a ponta; usa HTTPS e armazenamento do serviço.
 
 No aplicativo Windows 0.1.4, o botão Programa, ao lado de Configurações, permite escolher entre fechar ou minimizar à bandeja ao clicar no X. A escolha é local e persistida. O chat funciona também no navegador e nas versões anteriores do aplicativo, após recarregar.
+
+## Recuperação e várias salas
+
+Minhas salas mantém uma conexão por sala e permite criar/entrar em outras sem sair das anteriores. Somente a sala em foco reproduz áudio. Alternar interrompe o microfone, câmera, monitoramento e compartilhamento locais; o usuário precisa ligá-los novamente. Chats continuam recebendo e mostram contagem de mensagens novas nas abas.
+
+As sessões ficam salvas neste dispositivo para recuperação ao reabrir a mesma instalação/origem, preservando a identidade de anfitrião. A recuperação desliga mídia, invalida sinais antigos e solicita novas conexões aos participantes. Continua sujeita à validade de 12 horas, ao encerramento pelo anfitrião e ao limite de 15 participantes. Sair/encerrar explicitamente remove a sessão salva; encerrar como anfitrião requer confirmação. Limpar dados locais ou mudar de navegador/instalação perde a identidade salva. Falhas de rede podem ser repetidas por “Tentar voltar”.
+
+Windows: instale 0.1.4 para configurar o X na guia Programa. Fechar o aplicativo mantém as sessões recuperáveis; minimizar à bandeja mantém as chamadas ativas. O servidor ainda usa malha WebRTC: múltiplas salas aumentam consumo de rede/processamento. A validação automatizada não substitui testes reais de mídia entre computadores.

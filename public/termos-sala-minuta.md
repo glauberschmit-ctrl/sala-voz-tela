@@ -4,7 +4,7 @@
 
 ## 1. Operador e contato
 
-Operador responsável: **Glauber Roberto Scmit**. Identificação cadastral e endereço: **[A COMPLETAR PARA A VERSÃO DEFINITIVA]**.
+Operador responsável: **Glauber Roberto Schmit**. Identificação cadastral e endereço: **[A COMPLETAR PARA A VERSÃO DEFINITIVA]**.
 Suporte, privacidade, recursos e solicitações legais: **glauberroberto21@gmail.com**.
 O nome e o contato foram informados pelo responsável. Os campos cadastrais pendentes precisam ser completados antes da adoção definitiva destes termos. Nenhuma empresa foi designada automaticamente como operadora.
 
@@ -26,7 +26,7 @@ Não envie, armazene ou redistribua material de abuso sexual infantil. Não enca
 
 ## 5. Conteúdo e gravação
 
-Cada usuário deve ter autorização para transmitir os conteúdos e respeitar direitos de terceiros. O botão de gravação salva a tela selecionada e o áudio do compartilhamento quando disponível; não inclui automaticamente as vozes dos microfones ou câmeras. O aplicativo informa aos participantes quando alguém utiliza esse recurso. Esse aviso não constitui, por si só, consentimento de todos nem autorização para divulgar o vídeo.
+Cada usuário deve ter autorização para transmitir os conteúdos e respeitar direitos de terceiros. O botão de gravação salva a tela selecionada e o áudio do compartilhamento quando disponível; inclui as vozes disponíveis da sala e o microfone ligado de quem grava, respeitando os volumes locais. As câmeras não são incluídas. O aplicativo informa aos participantes quando alguém utiliza esse recurso. Esse aviso não constitui, por si só, consentimento de todos nem autorização para divulgar o vídeo.
 
 Antes de gravar ou publicar, informe os participantes e obtenha as autorizações cabíveis. O VOD é gerado localmente e deve ser baixado antes de fechar o aplicativo. Não há arquivo central automático de chamadas. Ferramentas externas podem gravar telas sem serem detectadas pelo Sala.
 

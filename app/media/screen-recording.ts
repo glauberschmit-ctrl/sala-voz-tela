@@ -7,7 +7,7 @@ export function startScreenRecording(video:MediaStreamTrack,audio:MediaStreamTra
  if(video.kind!=='video'||video.readyState!=='live'||video.muted)throw new Error('Aguarde a tela começar a chegar antes de gravar.');
  const source=new MediaStream([video.clone(),...(audio?.readyState==='live'?[audio.clone()]:[])]);
  const type=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t));
- let recorder:MediaRecorder;try{recorder=new MediaRecorder(source,{...(type?{mimeType:type}:{}),videoBitsPerSecond:4000000,audioBitsPerSecond:128000})}catch{source.getTracks().forEach(t=>t.stop());throw new Error('Não foi possível iniciar a gravação neste aparelho.')}
+ let recorder:MediaRecorder;try{recorder=new MediaRecorder(source,{...(type?{mimeType:type}:{}),videoBitsPerSecond:6000000,audioBitsPerSecond:192000})}catch{source.getTracks().forEach(t=>t.stop());throw new Error('Não foi possível iniciar a gravação neste aparelho.')}
  const chunks:Blob[]=[];let bytes=0,stopping=false,disposed=false;const started=Date.now();let timer:ReturnType<typeof setInterval>;
  function release(){clearInterval(timer);video.removeEventListener('ended',stop);source.getTracks().forEach(t=>t.stop())}
  function stop(){if(stopping)return;stopping=true;if(recorder.state!=='inactive')recorder.stop();}

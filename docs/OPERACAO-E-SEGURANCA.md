@@ -53,4 +53,14 @@ Não há certificação de conformidade, moderação audiovisual ativa nem garan
 
 ## Configuração inicial — 28/09/2026
 
-Responsável informado: Glauber Roberto Scmit. Canal de suporte/privacidade: glauberroberto21@gmail.com. Conta administrativa autorizada no servidor: mesmo e-mail, com autenticação obrigatória. Orçamento inicial informado: R$ 0 para moderação e mídia. Nenhum serviço pago foi contratado nesta atualização. A moderação automática de texto e mídia permanece desativada; denúncias e ações administrativas são manuais. A configuração não garante gratuidade ilimitada da hospedagem ou dos provedores já utilizados.
+Responsável informado: Glauber Roberto Schmit. Canal de suporte/privacidade: glauberroberto21@gmail.com. Conta administrativa autorizada no servidor: mesmo e-mail, com autenticação obrigatória. Orçamento inicial informado: R$ 0 para moderação e mídia. Nenhum serviço pago foi contratado nesta atualização. A moderação automática de texto e mídia permanece desativada; denúncias e ações administrativas são manuais. A configuração não garante gratuidade ilimitada da hospedagem ou dos provedores já utilizados.
+
+## Atualização de qualidade, áudio e estabilidade
+
+Captura prioriza 1920×1080 a até 30 fps e tenta 720p quando indisponível. O espectador pode pedir Automático, 1080p ou 720p por conexão; a fonte e a rede continuam limitando a resolução efetiva. Automático reduz o alvo após limitação de rede/processador e tenta recuperar após estabilidade. A gravação preserva a resolução da fonte recebida, mistura áudio da tela selecionada com vozes disponíveis e microfone local ligado, respeita volumes locais e usa compressor para reduzir saturação. Não há aumento artificial de resolução.
+
+Sinalização usa filas separadas por participante, prazo de requisição e nova tentativa limitada. Reconexão automática limitada a três tentativas por participante, incluindo retransmissão TURN quando configurada. Isso não garante capacidade de transmissão 1080p simultânea para 15 pessoas: o modelo atual envia mídia diretamente para cada participante. A causa do incidente relatado não foi confirmada pelos logs HTTP. Não foi contratado servidor novo.
+
+Chat: painel de emojis e fonte de leitura local (padrão, Arial, Georgia, monoespaçada). A fonte não modifica mensagens dos demais.
+
+Verificação: testes de API/permissões e parâmetros de qualidade; navegador gerou VOD 1920×1080 com dois canais de áudio decodificados e sinal não silencioso. O teste de transporte WebRTC neste navegador remoto não estabeleceu conexão; validar transmissão entre aparelhos e redes reais antes de declarar resolvida a instabilidade.

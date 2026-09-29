@@ -17,6 +17,8 @@ assert.equal((await request({...auth,token:'invalid',action:'ice'})).status,401)
 assert.equal((await request({...auth,action:'ice'})).status,200);
 assert.equal((await request({...auth,action:'signal',target:viewer.id,payload:{type:'offer',sdp:'qa-test'}})).status,200);
 const delivered=await request({...va,action:'poll',cursor:0});assert.equal(delivered.data.signals.length,1);assert.equal((await request({...va,action:'poll',cursor:delivered.data.signals[0].id})).data.signals.length,0);
+assert.equal((await request({...va,action:'signal',target:s.id,payload:{type:'quality',quality:'720'}})).status,200);
+assert.equal((await request({...va,action:'signal',target:s.id,payload:{type:'quality',quality:'bogus'}})).status,400);
 const viewer2=(await request({action:'join',room:s.room.id,name:'QA 2'})).data;
 assert.equal((await request({...va,action:'signal',target:viewer2.id,payload:{type:'offer',sdp:'not-allowed'}})).status,403);
 for(let i=0;i<12;i++)assert.equal((await request({action:'join',room:s.room.id,name:'QA '+i})).status,200);

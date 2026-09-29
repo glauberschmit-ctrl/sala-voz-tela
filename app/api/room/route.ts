@@ -82,8 +82,9 @@ async function handle(req:Request){
    if(room.mode==='presentation'&&me.id!==room.host&&target!==room.host)return reply({error:'A plateia se conecta apenas ao apresentador.'},403);
    const peer=await d.prepare('SELECT id FROM members WHERE id=? AND room=? AND seen>?').bind(target,room.id,now-180000).first();
    if(!peer)return reply({error:'O participante saiu.'},404);
-   const p=b.payload;if(!p||!['offer','answer','candidate','reset'].includes(p.type)|| (!['candidate','reset'].includes(p.type)&&typeof p.sdp!=='string'))return reply({error:'Sinal inválido.'},400);
-   await d.prepare('INSERT INTO signals (room,sender,target,payload,created) VALUES (?,?,?,?,?)').bind(room.id,me.id,target,JSON.stringify(p),now).run();
+   const p=b.payload;if(!p||!['offer','answer','candidate','reset','quality'].includes(p.type)|| (!['candidate','reset','quality'].includes(p.type)&&typeof p.sdp!=='string'))return reply({error:'Sinal inválido.'},400);
+   if(p.type==='quality'&&!['auto','1080','720'].includes(p.quality))return reply({error:'Qualidade inválida.'},400);
+   await d.prepare('INSERT INTO signals (room,sender,target,payload,created) VALUES (?,?,?,?,?)').bind(room.id,me.id,target,JSON.stringify(p.type==='quality'?{type:'quality',quality:p.quality}:p),now).run();
    return reply({ok:true});
   }
   return reply({error:'Ação inválida.'},400);

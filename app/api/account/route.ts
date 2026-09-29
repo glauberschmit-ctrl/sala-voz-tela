@@ -1,11 +1,11 @@
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {getUser} from '@/app/auth';
 import {db} from '@/db/raw';
 import {audit,limited} from '@/db/operations';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
-export async function GET(){const user=await getChatGPTUser();if(!user)return reply({error:'Entre para acessar sua conta.'},401);const account=await db().prepare('SELECT name,created,updated FROM accounts WHERE id=?').bind(user.userId).first();return reply({account:account??null,email:user.email})}
+export async function GET(){const user=await getUser();if(!user)return reply({error:'Entre para acessar sua conta.'},401);const account=await db().prepare('SELECT name,created,updated FROM accounts WHERE id=?').bind(user.userId).first();return reply({account:account??null,email:user.email})}
 export async function POST(req:Request){
  if(req.headers.get('origin')!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
- const user=await getChatGPTUser();if(!user)return reply({error:'Entre para acessar sua conta.'},401);
+ const user=await getUser();if(!user)return reply({error:'Entre para acessar sua conta.'},401);
  if(await limited('account:'+user.userId,20,60))return reply({error:'Aguarde um minuto antes de tentar novamente.'},429);
  const raw=await req.text();if(raw.length>2048)return reply({error:'Pedido muito grande.'},413);
  let b:any;try{b=JSON.parse(raw)}catch{return reply({error:'Pedido inválido.'},400)}

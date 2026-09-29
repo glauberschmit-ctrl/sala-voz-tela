@@ -1,4 +1,4 @@
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {getUser} from '@/app/auth';
 import {audit,observe,moderateText,operationalConfig} from '@/db/operations';
 import {db,files} from '@/db/raw';
 import {imageMime,MAX_IMAGE_BYTES} from './image-format';
@@ -14,7 +14,7 @@ export const POST=(req:Request)=>observe(req,handle,'/api/chat-attachment');
 async function handle(req:Request){
  try{
   const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
-  const user=await getChatGPTUser();
+  const user=await getUser();
   const bytes=await boundedBody(req);const contentType=req.headers.get('content-type')||'';
   let b:any,file:File|null=null;
   if(contentType.startsWith('multipart/form-data')){

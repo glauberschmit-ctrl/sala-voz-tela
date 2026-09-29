@@ -1,4 +1,4 @@
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {getUser} from '@/app/auth';
 import {audit,observe,requestLimit,moderateText} from '@/db/operations';
 import { db,iceConfig,deleteRoomFiles } from '@/db/raw';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
@@ -8,7 +8,7 @@ export const POST=(req:Request)=>observe(req,handle,'/api/room');
 async function handle(req:Request){
  try{
   const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
-  const user=await getChatGPTUser();
+  const user=await getUser();
   const raw=await req.text();if(raw.length>70000)return reply({error:'Pedido muito grande.'},413);
   const b=JSON.parse(raw),d=db(),now=Date.now();
   if(['create','join'].includes(b.action)&&await requestLimit(req,b.action))return reply({error:'Muitas tentativas. Aguarde um minuto.'},429);

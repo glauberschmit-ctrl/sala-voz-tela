@@ -1,0 +1,11 @@
+'use client';
+import {getApps,initializeApp} from 'firebase/app';
+import {getAuth,type User} from 'firebase/auth';
+import {firebaseConfig} from './firebase-config';
+export function firebaseAuth(){const auth=getAuth(getApps()[0]??initializeApp(firebaseConfig));auth.languageCode='pt-BR';return auth}
+export async function syncSession(user:User|null){const r=await fetch('/api/auth/session',{method:user?'POST':'DELETE',headers:{'Content-Type':'application/json'},body:user?JSON.stringify({idToken:await user.getIdToken()}):undefined});if(!r.ok)throw new Error('Não foi possível confirmar sua sessão no Sala. Tente novamente.');}
+export function authError(e:unknown){const code=(e as {code?:string})?.code;const messages:Record<string,string>={'auth/invalid-credential':'E-mail ou senha incorretos.','auth/wrong-password':'E-mail ou senha incorretos.','auth/user-not-found':'E-mail ou senha incorretos.','auth/email-already-in-use':'Este e-mail já tem uma conta. Entre ou recupere sua senha.','auth/invalid-email':'Informe um e-mail válido.','auth/weak-password':'Escolha uma senha mais forte.','auth/password-does-not-meet-requirements':'A senha não atende aos requisitos. Use pelo menos 12 caracteres.','auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos.','auth/network-request-failed':'Falha de conexão. Confira sua internet e tente novamente.','auth/popup-blocked':'O navegador bloqueou a janela. Permita pop-ups para o Sala.','auth/popup-closed-by-user':'A janela do Google foi fechada. Tente novamente.','auth/cancelled-popup-request':'Uma janela de login já está aberta.','auth/unauthorized-domain':'Este endereço ainda não foi autorizado no Firebase. Avise o responsável pelo Sala.','auth/operation-not-allowed':'Este método de login ainda não foi ativado no Firebase.','auth/account-exists-with-different-credential':'Entre usando o método já cadastrado para este e-mail.','auth/user-disabled':'Esta conta está desativada.'};return (code&&messages[code])||'Não foi possível concluir. Tente novamente.'}
+
+let authFlowBusy=false;
+export function setAuthFlowBusy(value:boolean){authFlowBusy=value}
+export function isAuthFlowBusy(){return authFlowBusy}

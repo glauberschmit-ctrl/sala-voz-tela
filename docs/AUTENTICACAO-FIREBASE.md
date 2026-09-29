@@ -4,7 +4,7 @@ O Sala usa Firebase Authentication (projeto sala-2f9c7) com Google e e-mail/senh
 
 - O SDK autentica diretamente no Firebase. Senhas não passam pelas APIs do Sala.
 - O servidor verifica RS256 com certificados públicos do Firebase, emissor, projeto, validade, subject e autenticação. Nunca confia em um e-mail fornecido no formulário para identificar a conta.
-- O token validado fica em cookie HttpOnly, Secure em HTTPS e SameSite=Lax, limitado à validade do ID token (normalmente até uma hora). O cliente renova o token periodicamente e ao retomar a janela. Alterações na sessão exigem Origin do mesmo site.
+- O token validado fica em cookie HttpOnly, Secure, SameSite=None e Partitioned em HTTPS (SameSite=Lax somente na prévia HTTP), limitado à validade do ID token (normalmente até uma hora). Uma consulta GET confirma que o cookie retornou ao servidor antes de navegar. A recuperação automática limita recarregamentos por identidade para evitar ciclos. O cliente renova o token periodicamente e ao retomar a janela. Alterações na sessão exigem Origin do mesmo site.
 - Perfil e sessões de sala usam o identificador firebase:<uid>. Contas antigas ChatGPT não são vinculadas automaticamente por e-mail. Salas antigas vinculadas a essas contas exigem nova entrada pelo convite; salas de convidados permanecem independentes.
 - Administradores precisam do e-mail na lista SALA_ADMIN_EMAILS e email_verified verdadeiro.
 - A recuperação e a confirmação de e-mail usam os modelos do Firebase. Verificar envio, recebimento e spam com uma conta real após publicação.

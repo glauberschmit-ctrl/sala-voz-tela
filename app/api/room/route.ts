@@ -1,3 +1,4 @@
+import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {audit,observe,requestLimit,moderateText} from '@/db/operations';
 import { db,iceConfig,deleteRoomFiles } from '@/db/raw';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
@@ -7,6 +8,7 @@ export const POST=(req:Request)=>observe(req,handle,'/api/room');
 async function handle(req:Request){
  try{
   const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)return reply({error:'Origem não autorizada.'},403);
+  const user=await getChatGPTUser();if(!user)return reply({error:'Entre na sua conta para acessar as salas.'},401);
   const raw=await req.text();if(raw.length>70000)return reply({error:'Pedido muito grande.'},413);
   const b=JSON.parse(raw),d=db(),now=Date.now();
   if(['create','join'].includes(b.action)&&await requestLimit(req,b.action))return reply({error:'Muitas tentativas. Aguarde um minuto.'},429);
@@ -15,7 +17,7 @@ async function handle(req:Request){
    const room=uid(),id=uid(),token=uid()+uid();
    const expired=await d.prepare('SELECT id FROM rooms WHERE expires<? LIMIT 20').bind(now).all<{id:string}>();
    for(const old of expired.results){await deleteRoomFiles(old.id);await d.prepare('DELETE FROM rooms WHERE id=?').bind(old.id).run();}
-   await d.batch([d.prepare('INSERT INTO rooms (id,title,mode,host,expires) VALUES (?,?,?,?,?)').bind(room,title,b.mode,id,now+43200000),d.prepare('INSERT INTO members (id,room,token,name,seen) VALUES (?,?,?,?,?)').bind(id,room,token,name,now)]);
+   await d.batch([d.prepare('INSERT INTO rooms (id,title,mode,host,expires) VALUES (?,?,?,?,?)').bind(room,title,b.mode,id,now+43200000),d.prepare('INSERT INTO members (id,room,token,name,seen,account_id) VALUES (?,?,?,?,?,?)').bind(id,room,token,name,now,user.userId)]);
    await audit('room.created',id,room,200);return reply({room:{id:room,title,mode:b.mode,host:id},id,token});
   }
   const room=await d.prepare('SELECT id,title,mode,host,expires FROM rooms WHERE id=? AND expires>?').bind(clean(b.room,32),now).first<any>();
@@ -24,12 +26,13 @@ async function handle(req:Request){
   if(b.action==='join'){
    const name=clean(b.name,40);if(!name)return reply({error:'Digite seu nome.'},400);
    const id=uid(),token=uid()+uid();
-   const result=await d.prepare('INSERT INTO members (id,room,token,name,seen) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15').bind(id,room.id,token,name,now,room.id,now-180000).run();
+   const result=await d.prepare('INSERT INTO members (id,room,token,name,seen,account_id) SELECT ?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15').bind(id,room.id,token,name,now,user.userId,room.id,now-180000).run();
    if(!result.meta.changes)return reply({error:'A sala está cheia (máximo de 15 pessoas).'},409);
    await audit('room.joined',id,room.id,200);return reply({room,id,token});
   }
-  const me=await d.prepare('SELECT id,name,seen,suspended,mic,screen,camera,recording FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
+  const me=await d.prepare('SELECT id,name,seen,suspended,mic,screen,camera,recording,account_id FROM members WHERE id=? AND room=? AND token=?').bind(clean(b.id,32),room.id,clean(b.token,64)).first<any>();
   if(!me)return reply({error:'Sua conexão expirou. Entre na sala novamente.'},401);
+  if(me.account_id!==user.userId)return reply({error:'Entre novamente pelo convite usando sua conta. Sessão não vinculada a esta conta.'},403);
   if(me.suspended)return reply({error:'Esta sessão foi suspensa pela administração.'},403);
   if(b.action==='chat_list'||b.action==='chat_send'){
    if(me.seen<=now-180000)return reply({error:'Reconecte à sala para usar o chat.'},401);

@@ -5,12 +5,14 @@ import ts from 'typescript';
 const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())sql.exec(fs.readFileSync('drizzle/'+file,'utf8'));
 const store={prepare(query){let args=[];return {bind(...values){args=values;return this},async first(){return sql.prepare(query).get(...args)??null},async all(){return {results:sql.prepare(query).all(...args)}},async run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes)}}}}},async batch(stmts){return Promise.all(stmts.map(s=>s.run()))}};
 const output=ts.transpileModule(fs.readFileSync('app/api/room/route.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-const exports={};new Function('require','exports',output)(name=>{if(name==='@/db/operations')return {audit:async()=>{},requestLimit:async()=>false,moderateText:async()=>{},observe:async(req,fn)=>fn(req)};if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
+let loginUser={userId:'test-account',email:'test@example.test'};
+const exports={};new Function('require','exports',output)(name=>{if(name==='@/app/chatgpt-auth')return {getChatGPTUser:async()=>loginUser};if(name==='@/db/operations')return {audit:async()=>{},requestLimit:async()=>false,moderateText:async()=>{},observe:async(req,fn)=>fn(req)};if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
 async function request(b,origin='https://test.example'){const r=await exports.POST(new Request('https://test.example/api/room',{method:'POST',headers:{'content-type':'application/json',origin},body:JSON.stringify(b)}));return {status:r.status,data:await r.json()}}
 assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conversation'},'https://other.example')).status,403);
 const c=await request({action:'create',name:'QA Host',title:'QA Apresentação',mode:'presentation'});assert.equal(c.status,200);
 const s=c.data,auth={room:s.room.id,id:s.id,token:s.token};
 const viewer=(await request({action:'join',room:s.room.id,name:'QA Viewer'})).data,va={room:s.room.id,id:viewer.id,token:viewer.token};
+loginUser=null;assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conversation'})).status,401);assert.equal((await request({...va,action:'poll'})).status,401);loginUser={userId:'other-account',email:'other@example.test'};assert.equal((await request({...va,action:'poll'})).status,403);loginUser={userId:'test-account',email:'test@example.test'};
 const poll=await request({...va,action:'poll',mic:true,screen:true,camera:true,cursor:0});const actual=poll.data.members.find(x=>x.id===viewer.id);assert.equal(actual.mic,0);assert.equal(actual.screen,0);assert.equal(actual.camera,0);
 assert.equal((await request({...auth,token:'invalid',action:'poll'})).status,401);
 assert.equal((await request({...auth,token:'invalid',action:'ice'})).status,401);
@@ -76,7 +78,7 @@ console.log('PASS: chat authentication, room isolation, audience access, idempot
 const objects=new Map();
 const bucket={async put(key,data){objects.set(key,Uint8Array.from(data))},async delete(key){objects.delete(key)},async get(key){const data=objects.get(key);return data?{body:data,size:data.length}:null}};
 const format={};new Function('exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/image-format.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(format);
-const attachmentRoute={};new Function('require','exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='@/db/raw'?{db:()=>store,files:()=>bucket}:name==='@/db/operations'?{audit:async()=>{},moderateText:async()=>{},operationalConfig:()=>({moderationRequired:false}),observe:async(req,fn)=>fn(req)}:format,attachmentRoute);
+const attachmentRoute={};new Function('require','exports',ts.transpileModule(fs.readFileSync('app/api/chat-attachment/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='@/app/chatgpt-auth'?{getChatGPTUser:async()=>loginUser}:name==='@/db/raw'?{db:()=>store,files:()=>bucket}:name==='@/db/operations'?{audit:async()=>{},moderateText:async()=>{},operationalConfig:()=>({moderationRequired:false}),observe:async(req,fn)=>fn(req)}:format,attachmentRoute);
 const ia={room:other.room.id,id:other.id,token:other.token};
 async function upload(auth,bytes,name,client){const form=new FormData();for(const [key,value] of Object.entries({...auth,clientId:client,body:'Legenda'}))form.append(key,value);form.append('file',new Blob([bytes]),name);const response=await attachmentRoute.POST(new Request('https://test.example/api/chat-attachment',{method:'POST',body:form}));return {status:response.status,data:await response.json()}}
 const png=fs.readFileSync('public/icon-192.png');
@@ -86,6 +88,7 @@ const image=await upload(ia,png,'logo.png','c'.repeat(32));assert.equal(image.st
 assert.equal((await upload(ia,png,'logo.png','c'.repeat(32))).data.message.id,image.data.message.id);assert.equal(objects.size,1);
 assert.equal((await upload(ia,png,'too-soon.png','d'.repeat(32))).status,429);assert.equal(objects.size,1);
 async function download(auth,id){return attachmentRoute.POST(new Request('https://test.example/api/chat-attachment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...auth,action:'download',messageId:id})}))}
+loginUser={userId:'outsider',email:'outside@example.test'};assert.equal((await download(ia,image.data.message.id)).status,401);loginUser=null;assert.equal((await download(ia,image.data.message.id)).status,401);loginUser={userId:'test-account',email:'test@example.test'};
 const imageDownload=await download(ia,image.data.message.id);assert.equal(imageDownload.status,200);assert.equal(imageDownload.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await imageDownload.arrayBuffer()),png);
 assert.equal((await download({...ia,token:'bad'},image.data.message.id)).status,401);
 const third=(await request({action:'create',name:'Terceiro',title:'Outra',mode:'conversation'})).data;

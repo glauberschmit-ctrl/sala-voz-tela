@@ -64,3 +64,9 @@ Sinalização usa filas separadas por participante, prazo de requisição e nova
 Chat: painel de emojis e fonte de leitura local (padrão, Arial, Georgia, monoespaçada). A fonte não modifica mensagens dos demais.
 
 Verificação: testes de API/permissões e parâmetros de qualidade; navegador gerou VOD 1920×1080 com dois canais de áudio decodificados e sinal não silencioso. O teste de transporte WebRTC neste navegador remoto não estabeleceu conexão; validar transmissão entre aparelhos e redes reais antes de declarar resolvida a instabilidade.
+
+## Login obrigatório
+
+Rotas de sala, chat, anexos e denúncias exigem identidade da autenticação ChatGPT fornecida pelo dispatcher. Cada membro tem account_id; tokens de participação só funcionam com a mesma conta. A tela inicial apresenta login para anônimos, preservando o convite no retorno. Preferências de salas são separadas por conta neste aparelho. Sessões anteriores exigem nova entrada pelo convite. Não há senha armazenada pelo Sala nem login direto Google.
+
+Limitação conhecida: Windows 0.1.4 bloqueia redirecionamentos de autenticação externos; até atualizar o cliente, usar o navegador. A tela orienta a copiar o endereço. Isso substitui a indicação anterior de entrada anônima disponível. O login não corrige falhas do transporte WebRTC.

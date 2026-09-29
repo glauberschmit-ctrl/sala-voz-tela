@@ -16,3 +16,6 @@ await assert.rejects(()=>buildIceConfig(env,'member',async()=>Response.json([{ur
 await assert.rejects(()=>buildIceConfig(env,'member',async()=>new Response('',{status:401})));
 await assert.rejects(()=>buildIceConfig({TURN_URLS:'turn:test.example'},'member'));
 console.log('PASS: TURN configuration, HMAC credentials, provider validation, missing/invalid credentials, API-key isolation.');
+
+assert.ok(provider.iceServers.some(s=>JSON.stringify(s.urls).includes('stun:')));
+await assert.rejects(()=>buildIceConfig(env,'member',async()=>Response.json([{urls:'turns:test.example:443',username:' ',credential:' '}])));

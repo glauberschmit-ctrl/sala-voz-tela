@@ -16,11 +16,11 @@ export async function buildIceConfig(values:IceEnv,member:string,request:typeof 
    const urls=typeof entry?.urls==='string'?[entry.urls]:entry?.urls;
    if(!Array.isArray(urls)||!urls.length||!urls.every((u:unknown)=>typeof u==='string'&&/^(stun|turn|turns):[^\s]+$/.test(u)))throw new Error('Endereço de retransmissão inválido.');
    const relay=urls.some((u:string)=>/^turns?:/.test(u));
-   if(relay&&(typeof entry.username!=='string'||typeof entry.credential!=='string'))throw new Error('Credenciais de retransmissão inválidas.');
+   if(relay&&(typeof entry.username!=='string'||typeof entry.credential!=='string'||!entry.username.trim()||!entry.credential.trim()))throw new Error('Credenciais de retransmissão inválidas.');
    return {urls,...(relay?{username:entry.username,credential:entry.credential}:{})};
   });
   if(!iceServers.some(s=>(s.urls as string[]).some(u=>/^turns?:/.test(u))))throw new Error('O serviço não retornou um servidor de retransmissão.');
-  return {iceServers,relayConfigured:true};
+  return {iceServers:[...stun,...iceServers],relayConfigured:true};
  }
  const iceServers=[...stun];
  if(values.TURN_URLS||values.TURN_SHARED_SECRET){

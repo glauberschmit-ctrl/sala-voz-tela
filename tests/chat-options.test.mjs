@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+const exports={};new Function('exports',ts.transpileModule(fs.readFileSync('app/media/chat-options.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText)(exports);
+const {chatPollDelay}=exports;
+assert.equal(chatPollDelay(true,true,true,0),800);
+assert.equal(chatPollDelay(true,true,true,0,true),100);
+assert.equal(chatPollDelay(true,false,true,0),3000);
+assert.equal(chatPollDelay(false,true,true,0),6000);
+assert.equal(chatPollDelay(true,true,true,1),1500);
+assert.equal(chatPollDelay(true,true,true,20),15000);
+console.log('PASS: active polling, catch-up, background pacing and bounded error backoff.');

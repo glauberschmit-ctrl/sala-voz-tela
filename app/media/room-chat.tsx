@@ -2,6 +2,7 @@
 import {useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
 import {localId} from './saved-rooms';
 import ChatImage from './chat-image';
+import GifPicker from './gif-picker';
 import {emojiGroups,chatPollDelay} from './chat-options';
 import {MessageSquare,Send,ChevronDown,ChevronUp,Paperclip,X,Smile} from 'lucide-react';
 type Message={id:number;sender:string;name:string;clientId:string;body:string;created:number;attachmentMime?:string;attachmentName?:string};
@@ -9,6 +10,7 @@ type Session={room:{id:string};id:string;token:string};
 const merge=(old:Message[],incoming:Message[])=>[...new Map([...old,...incoming].map(m=>[m.id,m])).values()].sort((a,b)=>a.id-b.id);
 export default function RoomChat({session,active=true,onUnread}:{session:Session;active?:boolean;onUnread?:(n:number)=>void}){
  const id=useId(),activeRef=useRef(active),notify=useRef(onUnread);activeRef.current=active;notify.current=onUnread;
+ const [gifOpen,setGifOpen]=useState(false);
  const [emojiOpen,setEmojiOpen]=useState(false),[emojiGroup,setEmojiGroup]=useState(0),[recent,setRecent]=useState<string[]>([]);
 
  function emoji(value:string){const start=input.current?.selectionStart??draft.length,end=input.current?.selectionEnd??start;const next=draft.slice(0,start)+value+draft.slice(end);if(next.length>2000)return;setDraft(next);setRecent(old=>[value,...old.filter(e=>e!==value)].slice(0,8));requestAnimationFrame(()=>{input.current?.focus();input.current?.setSelectionRange(start+value.length,start+value.length)})}
@@ -94,7 +96,8 @@ export default function RoomChat({session,active=true,onUnread}:{session:Session
    {connection&&<p className="chat-status" role="status">{connection}</p>}
    {error&&<p className="chat-error" role="alert">{error} Seu texto foi mantido.</p>}
    {attachment&&<div className="chat-selected">{attachmentPreview&&<img src={attachmentPreview} alt="Prévia do anexo"/>}<span>{attachment.name} · {(attachment.size/1024/1024).toFixed(1)} MB</span><button type="button" aria-label="Remover imagem" disabled={sending} onClick={()=>{setAttachment(null);retry.current=null;if(fileInput.current)fileInput.current.value=''}}><X size={15}/></button></div>}
-   <div className="chat-tools"><button type="button" className="secondary" aria-label="Escolher emoji" aria-expanded={emojiOpen} aria-controls={id+'-emojis'} onClick={()=>setEmojiOpen(!emojiOpen)}><Smile size={17}/> Emojis</button><button type="button" className="secondary chat-gif-button" aria-label="Anexar GIF animado" title="Escolher GIF do aparelho, até 5 MB" disabled={sending} onClick={()=>{if(fileInput.current){fileInput.current.accept='image/gif';fileInput.current.click()}}}>GIF <span>Animado</span></button></div>
+   <div className="chat-tools"><button type="button" className="secondary" aria-label="Escolher emoji" aria-expanded={emojiOpen} aria-controls={id+'-emojis'} onClick={()=>{setEmojiOpen(!emojiOpen);setGifOpen(false)}}><Smile size={17}/> Emojis</button><button type="button" className="secondary chat-gif-button" aria-label="Abrir catálogo de GIFs" aria-expanded={gifOpen} disabled={sending} onClick={()=>{setGifOpen(!gifOpen);setEmojiOpen(false)}}>GIF <span>Animado</span></button></div>
+   {gifOpen&&<GifPicker auth={auth} onClose={()=>setGifOpen(false)} onChoose={file=>{setAttachment(file);retry.current=null;setError('')}} onUpload={()=>{if(fileInput.current){fileInput.current.accept='image/gif';fileInput.current.click()}}}/>}
    {emojiOpen&&<div className="emoji-panel" id={id+'-emojis'} onKeyDown={e=>{if(e.key==='Escape'){setEmojiOpen(false);input.current?.focus()}}}><div className="emoji-panel-heading"><strong>Escolha uma reação</strong><button type="button" aria-label="Fechar emojis" onClick={()=>setEmojiOpen(false)}><X size={17}/></button></div><div className="emoji-categories" aria-label="Categorias de emojis">{emojiGroups.map((g,i)=><button type="button" key={g.name} title={g.name} aria-label={g.name} aria-pressed={emojiGroup===i} onClick={()=>setEmojiGroup(i)}>{g.icon}</button>)}</div>{recent.length>0&&<><p>Usados agora</p><div className="emoji-picker">{recent.map(e=><button type="button" key={e} disabled={sending} aria-label={`Inserir ${e}`} onClick={()=>emoji(e)}>{e}</button>)}</div></>}<p>{emojiGroups[emojiGroup].name}</p><div className="emoji-picker" aria-label={emojiGroups[emojiGroup].name}>{emojiGroups[emojiGroup].items.map(e=><button type="button" key={e} disabled={sending} aria-label={`Inserir ${e}`} onClick={()=>emoji(e)}>{e}</button>)}</div></div>}
 
    <form className="chat-composer" onSubmit={e=>{e.preventDefault();void send()}}>

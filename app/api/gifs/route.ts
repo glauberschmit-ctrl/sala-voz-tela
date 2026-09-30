@@ -13,7 +13,7 @@ export async function POST(req:Request){
   const me=await db().prepare('SELECT m.id FROM members m JOIN rooms r ON r.id=m.room WHERE m.room=? AND m.id=? AND m.token=? AND m.seen>? AND m.suspended=0 AND r.expires>? AND (m.account_id IS NULL OR m.account_id=?)').bind(b.room,b.id,b.token,now-180000,now,user?.userId??null).first();
   if(!me)return reply({error:'Reconecte à sala para buscar GIFs.'},401);
   const key=(env as unknown as Record<string,string|undefined>).KLIPY_API_KEY;
-  if(!key)return reply({error:'O catálogo de GIFs aguarda ativação pelo administrador. Você ainda pode enviar um GIF do aparelho.',configured:false},503);
+  if(!key)return reply({error:'O catálogo de GIFs aguarda ativação pelo administrador.',configured:false},503);
   if(await limited('gif:'+b.id,20,60))return reply({error:'Aguarde um pouco antes de buscar novamente.'},429);
   if(b.action==='download'){const bytes=await downloadGif(b.url);return new Response(bytes,{headers:{'Content-Type':'image/gif','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}
   if(b.action!=='search')return reply({error:'Operação inválida.'},400);

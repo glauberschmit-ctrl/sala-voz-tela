@@ -2,6 +2,7 @@
 import {useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
 import {localId} from './saved-rooms';
 import ChatImage from './chat-image';
+import {nameStyle} from './name-style';
 import GifPicker from './gif-picker';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import {emojiGroups,chatPollDelay} from './chat-options';
@@ -9,7 +10,7 @@ import {MessageSquare,Send,ChevronDown,ChevronUp,Paperclip,X,Smile,Film} from 'l
 type Message={id:number;sender:string;name:string;clientId:string;body:string;created:number;attachmentMime?:string;attachmentName?:string};
 type Session={room:{id:string};id:string;token:string};
 const merge=(old:Message[],incoming:Message[])=>[...new Map([...old,...incoming].map(m=>[m.id,m])).values()].sort((a,b)=>a.id-b.id);
-export default function RoomChat({session,active=true,onUnread}:{session:Session;active?:boolean;onUnread?:(n:number)=>void}){
+export default function RoomChat({session,active=true,onUnread,members=[]}:{members?:Array<{id:string;nameColor?:string;nameFont?:string}>;session:Session;active?:boolean;onUnread?:(n:number)=>void}){
  const id=useId(),activeRef=useRef(active),notify=useRef(onUnread);activeRef.current=active;notify.current=onUnread;
  const [gifOpen,setGifOpen]=useState(false);
  const [emojiOpen,setEmojiOpen]=useState(false),[emojiGroup,setEmojiGroup]=useState(0),[recent,setRecent]=useState<string[]>([]);
@@ -91,7 +92,7 @@ export default function RoomChat({session,active=true,onUnread}:{session:Session
     {older&&<button className="chat-older" type="button" onClick={()=>void loadOlder()} disabled={loadingOlder}>{loadingOlder?'Carregando…':'Carregar mensagens anteriores'}</button>}
     {loading&&<p className="chat-empty">Carregando conversa…</p>}
     {!loading&&!messages.length&&!pending&&<p className="chat-empty">Ainda não há mensagens. Comece a conversa!</p>}
-    {[...messages,...(pending&&!messages.some(m=>m.sender===pending.sender&&m.clientId===pending.clientId)?[pending]:[])].map(m=><article className={'chat-message '+(m.sender===session.id?'own':'')} key={m.sender+m.clientId}><header><strong>{m.sender===session.id?'Você':m.name}</strong><time dateTime={new Date(m.created).toISOString()} title={new Date(m.created).toLocaleString('pt-BR')}>{new Date(m.created).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</time></header><p>{m.body}</p>{m.id===-1&&<small className="chat-pending" role="status">Enviando…</small>}{m.attachmentMime&&<ChatImage messageId={m.id} name={m.attachmentName||'Imagem'} auth={auth}/>}</article>)}
+    {[...messages,...(pending&&!messages.some(m=>m.sender===pending.sender&&m.clientId===pending.clientId)?[pending]:[])].map(m=><article className={'chat-message '+(m.sender===session.id?'own':'')} key={m.sender+m.clientId}><header><strong style={nameStyle(members.find(p=>p.id===m.sender)?.nameColor,members.find(p=>p.id===m.sender)?.nameFont)}>{m.sender===session.id?'Você':m.name}</strong><time dateTime={new Date(m.created).toISOString()} title={new Date(m.created).toLocaleString('pt-BR')}>{new Date(m.created).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</time></header><p>{m.body}</p>{m.id===-1&&<small className="chat-pending" role="status">Enviando…</small>}{m.attachmentMime&&<ChatImage messageId={m.id} name={m.attachmentName||'Imagem'} auth={auth}/>}</article>)}
    </div>
    {unread>0&&<button type="button" className="chat-new" onClick={bottom}>Ver {unread} mensagem{unread===1?' nova':'s novas'} ↓</button>}
    {connection&&<p className="chat-status" role="status">{connection}</p>}

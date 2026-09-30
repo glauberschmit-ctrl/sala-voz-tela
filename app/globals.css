@@ -89,3 +89,31 @@ button:disabled{opacity:.5;box-shadow:none;transform:none}
 
 /* Compact icon-only tabs for chat reactions. */
 .chat-reaction-tabs{margin:10px 0}.chat-reaction-tablist{display:inline-flex!important;width:auto;height:52px!important;gap:4px;padding:4px;border:1px solid #40535f;border-radius:12px;background:#101b22}.chat-reaction-tablist [role=tab]{width:52px;min-width:52px;min-height:44px;padding:10px;border-radius:8px;color:#aebfca;background:transparent;flex:none}.chat-reaction-tablist [role=tab][data-state=active]{background:#35462a;color:#d5ff63;box-shadow:inset 0 0 0 1px #a4c55960}.chat-reaction-tabs [role=tabpanel]{margin-top:10px}.chat-reaction-tabs .gif-panel,.chat-reaction-tabs .emoji-panel{margin-bottom:0}
+
+/* Compact navigation and a larger screen-sharing stage. */
+.workspace-shell{--nav-width:208px;padding-left:var(--nav-width)}
+.workspace-shell.nav-collapsed{--nav-width:0px}
+.nav-toggle{position:fixed;left:12px;top:12px;z-index:45;width:44px;height:44px;justify-content:center}
+.workspace-shell .rooms-nav{position:fixed;inset:0 auto 0 0;width:208px;padding:72px 12px 20px;display:flex;flex-direction:column;align-items:stretch;gap:16px;overflow-y:auto;background:#12161e;border-right:1px solid #303744;z-index:40;margin:0}
+.nav-collapsed .rooms-nav{display:none}
+.workspace-shell .room-tabs{display:flex;flex-direction:column;overflow:visible;gap:8px;flex:none}
+.workspace-shell .room-tabs button{width:100%;min-width:0;text-align:left;white-space:normal}
+.workspace-actions{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:16px;border-top:1px solid #303744}
+.workspace-actions button,.workspace-actions a{width:100%;margin:0;justify-content:flex-start;min-height:44px;text-align:left;white-space:normal}
+.workspace-shell .topbar{min-height:68px;padding:14px 24px 14px 68px}
+.workspace-shell .topbar .brand{margin:0}
+.workspace-shell .rooms-help{font-size:12px;margin:0;padding:10px 24px 10px 68px}
+.workspace-shell .in-room{max-width:none;padding:16px 20px}
+.workspace-shell .room-layout{grid-template-columns:minmax(0,1fr) 272px;gap:14px}
+.workspace-shell .people-panel{padding:12px;min-width:0}
+.workspace-shell .people-list{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.workspace-shell .person{padding:8px;gap:8px}
+.workspace-shell .avatar{width:30px;height:30px;min-width:30px;font-size:12px}
+.workspace-shell .person-label{min-width:0;overflow-wrap:anywhere}
+.workspace-shell .person-label small{font-size:10px}
+.workspace-shell .invite-note{display:none}
+.workspace-shell .stage-content{min-height:clamp(320px,58vh,850px)}
+.workspace-shell .stage-content video{max-height:70vh;width:100%;object-fit:contain}
+.name-preview{padding:20px;background:#141923;border-radius:12px;font-size:24px;overflow-wrap:anywhere}
+@media(max-width:1100px){.workspace-shell .room-layout{grid-template-columns:minmax(0,1fr) 240px}}
+@media(max-width:860px){.workspace-shell{padding-left:0}.workspace-shell .rooms-nav{box-shadow:12px 0 40px #0008;width:208px}.workspace-shell .room-layout{grid-template-columns:minmax(0,1fr)}.workspace-shell .stage-content{min-height:240px}.workspace-shell .topbar{padding-left:68px}.workspace-shell .in-room{padding:12px}.workspace-shell .people-list{max-height:180px}}

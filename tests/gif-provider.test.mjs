@@ -10,3 +10,6 @@ await assert.rejects(()=>downloadGif(url,async()=>new Response('<html>error</htm
 await assert.rejects(()=>downloadGif(url,async()=>new Response('GIF89a',{headers:{'content-length':String(MAX_GIF+1)}})));
 await assert.rejects(()=>downloadGif('https://evil.test/a.gif',async()=>{throw new Error('must not fetch')}));
 console.log('PASS: GIF host allowlist, format/size validation, redirect refusal and result normalization.');
+
+for(const host of ['static1.klipy.com','static2.klipy.com'])assert.equal(gifResults({results:[{id:'x',media_formats:{tinygif:{url:`https://${host}/x.gif`}}}]}).length,1);
+assert.equal(gifUrl('https://static1.klipy.com.evil.test/a.gif'),null);

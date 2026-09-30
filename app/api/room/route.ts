@@ -1,3 +1,4 @@
+import {nameColors,nameFonts} from '@/app/media/name-style';
 import {getUser} from '@/app/auth';
 import {audit,observe,requestLimit,moderateText} from '@/db/operations';
 import { db,iceConfig,deleteRoomFiles } from '@/db/raw';
@@ -56,6 +57,11 @@ async function handle(req:Request){
    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
    return reply({messages:messages.results.slice(0,50).reverse(),hasOlder:messages.results.length>50});
   }
+  if(b.action==='profile'){
+   const name=clean(b.name,40);if(!name||!nameColors.includes(b.color)||!Object.hasOwn(nameFonts,b.font))return reply({error:'Nome ou aparência inválidos.'},400);
+   await moderateText(name,me.id,room.id);
+   await d.prepare('UPDATE members SET name=?,name_color=?,name_font=? WHERE id=?').bind(name,b.color,b.font,me.id).run();return reply({ok:true});
+  }
   if(b.action==='rename'){if(me.id!==room.host)return reply({error:'Somente o anfitrião pode renomear a sala.'},403);const title=clean(b.title,70);if(!title)return reply({error:'Digite um nome para a sala.'},400);await d.prepare('UPDATE rooms SET title=? WHERE id=?').bind(title,room.id).run();await audit('room.renamed',me.id,room.id,200);return reply({room:{...room,title}})}
   if(b.action==='resume'){
    const result=await d.prepare('UPDATE members SET seen=?,mic=0,screen=0,camera=0,recording=0 WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,me.id,now-180000,room.id,now-180000).run();
@@ -77,7 +83,7 @@ async function handle(req:Request){
    const resumed=await d.batch([d.prepare('UPDATE members SET seen=?,mic=?,screen=?,camera=?,recording=? WHERE id=? AND (seen>? OR (SELECT COUNT(*) FROM members WHERE room=? AND seen>?)<15)').bind(now,canSend&&b.mic?1:0,canSend&&b.screen?1:0,canSend&&b.camera?1:0,b.recording===true?1:0,me.id,now-180000,room.id,now-180000),d.prepare('DELETE FROM signals WHERE created<?').bind(now-120000)]);
    if(!resumed[0].meta.changes)return reply({error:'A sala está cheia. Entre novamente quando houver uma vaga.'},409);
    for(const [key,value] of Object.entries({mic:canSend&&b.mic?1:0,screen:canSend&&b.screen?1:0,camera:canSend&&b.camera?1:0,recording:b.recording===true?1:0}))if(me[key]!==value)await audit('media.'+key+(value?'.started':'.stopped'),me.id,room.id,200);
-   const [people,messages]=await Promise.all([d.prepare('SELECT id,name,mic,screen,camera,recording FROM members WHERE room=? AND seen>? ORDER BY id').bind(room.id,now-180000).all(),d.prepare('SELECT id,sender,payload FROM signals WHERE room=? AND target=? AND id>? ORDER BY id LIMIT 100').bind(room.id,me.id,Number.isSafeInteger(b.cursor)&&b.cursor>=0?b.cursor:0).all()]);
+   const [people,messages]=await Promise.all([d.prepare('SELECT id,name,name_color AS nameColor,name_font AS nameFont,mic,screen,camera,recording FROM members WHERE room=? AND seen>? ORDER BY id').bind(room.id,now-180000).all(),d.prepare('SELECT id,sender,payload FROM signals WHERE room=? AND target=? AND id>? ORDER BY id LIMIT 100').bind(room.id,me.id,Number.isSafeInteger(b.cursor)&&b.cursor>=0?b.cursor:0).all()]);
    return reply({room,members:people.results,signals:messages.results});
   }
   if(b.action==='signal'){

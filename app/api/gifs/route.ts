@@ -15,11 +15,11 @@ export async function POST(req:Request){
   const key=(env as unknown as Record<string,string|undefined>).KLIPY_API_KEY;
   if(!key)return reply({error:'O catálogo de GIFs aguarda ativação pelo administrador.',configured:false},503);
   if(await limited('gif:'+b.id,20,60))return reply({error:'Aguarde um pouco antes de buscar novamente.'},429);
-  if(b.action==='download'){const bytes=await downloadGif(b.url);return new Response(bytes,{headers:{'Content-Type':'image/gif','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}
+  if(b.action==='download'){try{const bytes=await downloadGif(b.url);return new Response(bytes,{headers:{'Content-Type':'image/gif','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}catch{return reply({error:'Não foi possível obter este GIF. Escolha outro (máximo de 5 MB).'},422)}}
   if(b.action!=='search')return reply({error:'Operação inválida.'},400);
   const q=typeof b.q==='string'?b.q.trim().slice(0,100):'';
   const u=new URL('https://api.klipy.com/v2/'+(q?'search':'featured'));u.searchParams.set('key',key);u.searchParams.set('limit','18');u.searchParams.set('media_filter','tinygif,gif');u.searchParams.set('contentfilter','high');u.searchParams.set('locale','pt_BR');u.searchParams.set('country','BR');if(q)u.searchParams.set('q',q);
-  const r=await fetch(u,{signal:AbortSignal.timeout(10000)});if(!r.ok)return reply({error:r.status===429?'O catálogo atingiu o limite de consultas. Tente mais tarde.':'O catálogo está temporariamente indisponível.'},503);
+  const r=await fetch(u,{signal:AbortSignal.timeout(10000)});if(!r.ok)return reply({error:[401,403].includes(r.status)?'A KLIPY recusou a chave ou o acesso. Verifique a ativação no painel KLIPY.':r.status===429?'O catálogo atingiu o limite de consultas. Tente mais tarde.':'O catálogo está temporariamente indisponível.'},503);
   return reply({items:gifResults(await r.json()),configured:true});
  }catch{return reply({error:'Não foi possível carregar os GIFs. Tente novamente.'},503)}
 }

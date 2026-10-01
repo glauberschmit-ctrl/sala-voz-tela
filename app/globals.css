@@ -135,3 +135,28 @@ button:disabled{opacity:.5;box-shadow:none;transform:none}
 .screen-controls button:hover,.screen-controls summary:hover{color:#c8ff58}.screen-controls button:disabled{opacity:.4;cursor:wait}
 .stage-content:has(.screen-controls) .stage-empty{padding-bottom:150px}
 @media(max-width:600px){.screen-controls .call-primary{gap:4px}.screen-controls .call-utilities{gap:2px}.screen-controls .call-utilities button{font-size:11px;padding:6px}.screen-controls{width:calc(100% - 16px)}}
+
+/* Keep an active call within the viewport; overflow belongs to side panels. */
+.workspace-shell:has(.room-active){height:100dvh;overflow:hidden}
+.workspace-shell .app-shell[hidden]{display:none}
+.workspace-shell .room-active{height:100%;min-height:0;max-width:none;overflow:hidden}
+.workspace-shell .room-active .topbar{height:48px;min-height:48px;flex-shrink:0;padding:6px 16px 6px 64px;gap:12px}
+.room-active .topbar .brand{font-size:26px;gap:8px}.room-active .brand-icon{height:30px;width:30px;border-radius:9px}.room-active .brand-icon svg{width:20px;height:20px}.room-active .top-caption{font-size:10px;padding-left:12px}
+.workspace-shell .room-active .in-room{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding:6px 10px;gap:6px}
+.room-active .room-heading{flex:0 0 auto;margin:0;gap:8px;min-height:44px;flex-direction:row;align-items:center}
+.room-active .room-heading>div:first-child{min-width:0}.room-active .room-heading .eyebrow{display:none}.room-active .room-heading h1{font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45vw}.room-active .room-info{gap:8px;width:auto}.room-active .room-heading .secondary{min-height:36px;padding:6px 10px}
+.workspace-shell .room-active .room-layout{flex:1;min-height:0;overflow:hidden;gap:8px;grid-template-rows:minmax(0,1fr)}
+.workspace-shell .room-active .room-main{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.workspace-shell .room-active .stage{min-height:0;flex:1;height:100%}
+.workspace-shell .room-active .stage-content{min-height:0;overflow:hidden}
+.workspace-shell .room-active .stage-content video{max-height:100%;height:100%}
+.room-active .stage-top,.room-active .stage-bottom{flex-shrink:0;padding:5px 10px;min-height:30px;font-size:11px}.room-active .stage-top{flex-wrap:wrap}.room-active .stage-top .secondary{padding:4px 8px;min-height:30px;font-size:12px}
+.workspace-shell .room-active .people-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:10px}
+.room-active .panel-title{padding-bottom:8px;flex-shrink:0}.workspace-shell .room-active .people-list{max-height:20dvh;flex-shrink:0}
+.room-active .room-chat{min-height:0;margin-top:10px}.room-active .chat-messages{height:clamp(80px,22dvh,260px);min-height:0;max-height:26dvh;overflow-y:auto}.room-active .chat-help{font-size:11px;margin:4px 0}.room-active .chat-composer textarea{min-height:52px;max-height:90px}.room-active .chat-retention{font-size:10px}
+.room-active .site-footer{flex-shrink:0;min-height:24px;padding:3px 10px;font-size:10px;gap:6px;flex-wrap:nowrap}.room-active .site-footer span{font-size:9px;width:auto}.room-active .site-footer span:nth-child(2){display:none}
+.room-active .camera-strip{flex:0 0 auto;max-height:90px;overflow:auto;margin:0;gap:6px}.room-active .camera-strip:empty{display:none}.room-active .camera-tile{height:80px;width:130px;flex-shrink:0}.room-active .camera-tile video{height:100%;object-fit:contain}
+.workspace-shell:has(.room-active)>.recordings-panel{position:fixed;bottom:32px;left:calc(var(--nav-width) + 12px);right:12px;z-index:30;max-height:35dvh;overflow:auto}
+.room-active .stage-empty{padding:8px 12px 115px!important}.room-active .stage-symbol{width:48px;height:48px;margin-bottom:8px;border-radius:12px}.room-active .stage-empty h2{font-size:18px}.room-active .stage-empty p{margin:6px 0 10px;font-size:12px}
+@media(max-height:650px){.room-active .stage-empty .stage-symbol,.room-active .stage-empty p{display:none}.room-active .stage-empty h2{font-size:16px;margin-bottom:8px}.room-active .camera-strip{max-height:60px}.room-active .camera-tile{height:55px}.room-active .site-footer{display:none}}
+@media(max-width:860px){.workspace-shell .room-active .room-layout{grid-template-areas:'main' 'people';grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.workspace-shell .room-active .people-panel{display:block}.room-active .mode-badge{display:none}.room-active .room-heading h1{max-width:52vw;font-size:18px}.room-active .site-footer>span{display:none}.room-active .site-footer{justify-content:flex-end}.room-active .stage-top .quality-control{width:auto;font-size:10px}.room-active .stage-top .quality-control select{max-width:120px}.room-active .stage-empty h2,.room-active .stage-empty p,.room-active .stage-symbol{display:none}}

@@ -4,7 +4,7 @@ Aplicativo Electron que abre o serviço Sala publicado. Compartilha as mesmas sa
 
 ## Instalação e uso
 
-1. Execute `Sala-Web-Setup-0.1.5.exe` no Windows 10/11 de 64 bits.
+1. Execute `Sala-Web-Setup-0.1.6.exe` no Windows 10/11 de 64 bits.
 2. Abra Sala pelo atalho e crie uma sala ou cole o convite em Entrar.
 3. Ative o microfone na sala e confira os dispositivos em Configurações.
 4. Ao compartilhar, selecione uma tela ou janela. O áudio do computador é opcional e inclui todos os sons, não apenas o jogo.
@@ -66,3 +66,7 @@ Novo instalador web associado ao código atualizado do Sala, incluindo as corre�
 Download: https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/tag/v0.1.5
 
 Feche o Sala pelo menu Sair do Sala antes de instalar sobre a versão anterior. Não há atualização automática do executável. Login Google continua disponível no navegador; a janela nativa mantém o bloqueio de pop-ups externos.
+
+## Atualização 0.1.6
+
+Nova distribuição do instalador web. O aplicativo carrega o site publicado; alterações salvas no GitHub só aparecem após a publicação do site. Esta versão não contém uma cópia offline das melhorias pendentes.

@@ -134,3 +134,50 @@ sql.prepare('UPDATE members SET suspended=1 WHERE id=?').run(rn.id);
 assert.equal((await request({...rn,action:'poll'})).status,403);
 assert.equal((await request({...rn,action:'chat_send',body:'Blocked',clientId:'f'.repeat(32)})).status,403);
 console.log('PASS: host-only rename, recording notice and suspended-session enforcement.');
+
+{
+// Permanent servers survive their owner's session and retain account ownership.
+loginUser=null;
+assert.equal((await request({action:'create',name:'Guest',title:'Forbidden',mode:'conversation',permanent:true})).status,403);
+loginUser={userId:'server-owner',email:'owner@example.test'};
+assert.equal((await request({action:'create',name:'Owner',title:'Incomplete account',mode:'conversation',permanent:true})).status,403);
+sql.prepare('INSERT INTO accounts(id,email,name,created,updated) VALUES(?,?,?,?,?)').run(loginUser.userId,loginUser.email,'Owner',Date.now(),Date.now());
+const permanent=(await request({action:'create',name:'Owner',title:'Permanent server',mode:'presentation',permanent:true})).data;
+assert.equal(permanent.room.permanent,1);assert.equal(permanent.room.mode,'conversation');assert.equal(permanent.room.canManage,true);
+const pa={room:permanent.room.id,id:permanent.id,token:permanent.token};
+assert.equal((await request({...pa,action:'channel_create',name:'Gaming'})).status,200);
+const channel=(await request({...pa,action:'poll'})).data.channels.find(c=>c.name==='Gaming').id;
+loginUser=null;
+const outsider=(await request({action:'join',room:pa.room,name:'Guest'})).data;
+const oa={room:pa.room,id:outsider.id,token:outsider.token};
+assert.equal(outsider.room.canManage,false);assert.equal('owner' in outsider.room,false);
+assert.equal((await request({...oa,action:'close'})).status,403);
+assert.equal((await request({...oa,action:'rename',title:'Stolen'})).status,403);
+assert.equal((await request({...oa,action:'channel_create',name:'Forbidden'})).status,403);
+assert.equal((await request({...oa,action:'signal',target:pa.id,payload:{type:'offer',sdp:'old-channel'}})).status,200);
+assert.equal((await request({...oa,action:'channel_switch',channel:'invalid'})).status,404);
+assert.equal((await request({...oa,action:'channel_switch',channel})).status,200);
+assert.equal((await request({...oa,action:'poll'})).status,409);
+const channelPoll=(await request({...oa,channel,action:'poll'})).data;
+assert.equal(channelPoll.members.length,1);assert.equal(channelPoll.signals.length,0);
+assert.equal((await request({...oa,channel,action:'signal',target:pa.id,payload:{type:'offer',sdp:'cross-channel'}})).status,404);
+loginUser={userId:'server-owner',email:'owner@example.test'};
+const mainPoll=(await request({...pa,action:'poll'})).data;assert.equal(mainPoll.members.length,1);assert.equal(mainPoll.signals.length,0);
+assert.equal((await request({...pa,action:'leave'})).status,200);
+assert.equal((await request({action:'info',room:pa.room})).status,200);
+assert.equal((await request({action:'my_servers'})).data.rooms.some(r=>r.id===pa.room),true);
+const returned=(await request({action:'join',room:pa.room,name:'Owner returned'})).data;
+assert.equal(returned.room.canManage,true);assert.notEqual(returned.id,pa.id);
+const ra={room:pa.room,id:returned.id,token:returned.token};
+assert.equal((await request({...ra,action:'rename',title:'Renamed permanent'})).status,200);
+const botId='9'.repeat(32);
+assert.equal((await request({...ra,action:'chat_send',body:'/ajuda',clientId:botId})).status,200);
+assert.equal((await request({...ra,action:'chat_send',body:'/ajuda',clientId:botId})).status,200);
+const botMessages=(await request({...ra,action:'chat_list'})).data.messages.filter(m=>m.sender==='sala-bot');assert.equal(botMessages.length,1);assert.match(botMessages[0].body,/Comandos/);
+assert.equal((await request({...ra,action:'close'})).status,200);
+assert.equal((await request({action:'info',room:pa.room})).status,404);
+assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM voice_channels WHERE room=?').get(pa.room).n,0);
+assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM server_accounts WHERE room=?').get(pa.room).n,0);
+console.log('PASS: registered-account servers, owner rejoin, leave versus close, channel permissions and media isolation, stale signaling, bot idempotence and cascading deletion.');
+
+}

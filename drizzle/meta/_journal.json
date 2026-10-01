@@ -64,6 +64,13 @@
       "when": 1790811494810,
       "tag": "0008_solid_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790876199744,
+      "tag": "0009_flaky_wallow",
+      "breakpoints": true
     }
   ]
 }

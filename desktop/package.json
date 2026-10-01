@@ -1,9 +1,9 @@
 {
   "name": "sala-desktop",
   "productName": "Sala",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
-  "description": "Sala — voz, câmera e compartilhamento de tela",
+  "description": "Sala \u2014 voz, c\u00e2mera e compartilhamento de tela",
   "author": "Glauber Schmit",
   "main": "main.cjs",
   "scripts": {
@@ -53,7 +53,7 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/download/v0.1.6/"
+      "url": "https://github.com/glauberschmit-ctrl/sala-voz-tela/releases/download/v0.1.7/"
     }
   }
 }

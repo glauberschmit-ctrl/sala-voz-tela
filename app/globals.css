@@ -119,3 +119,19 @@ button:disabled{opacity:.5;box-shadow:none;transform:none}
 @media(max-width:860px){.workspace-shell{padding-left:0}.workspace-shell .rooms-nav{box-shadow:12px 0 40px #0008;width:208px}.workspace-shell .room-layout{grid-template-columns:minmax(0,1fr)}.workspace-shell .stage-content{min-height:240px}.workspace-shell .topbar{padding-left:68px}.workspace-shell .in-room{padding:12px}.workspace-shell .people-list{max-height:180px}}
 
 .rooms-nav-heading{display:flex;align-items:center;justify-content:space-between;gap:4px}.rooms-nav-heading strong{font-size:14px}.rooms-info-button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:40px;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;color:inherit;cursor:pointer}.rooms-info-button:hover{background:#242e38}.rooms-info-button:focus-visible{outline:2px solid #c8ff58;outline-offset:2px}
+
+/* Transparent, collapsible controls inside the shared screen. */
+.stage-content{position:relative}
+.screen-controls{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:5;max-width:calc(100% - 16px);width:max-content;color:#fff;text-shadow:0 1px 3px #000;filter:drop-shadow(0 1px 2px #000)}
+.screen-controls .call-primary{display:flex;justify-content:center;gap:10px;grid-template-columns:none}
+.screen-controls .call-primary .control,.screen-controls .call-primary .background-control,.screen-controls .dock-toggle,.screen-controls summary{display:flex;align-items:center;justify-content:center;width:44px;min-width:44px;height:44px;min-height:44px;padding:8px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:#fff;cursor:pointer}
+.screen-controls .call-primary .control.enabled{color:#c8ff58;background:transparent}.screen-controls .call-primary .leave{color:#ff8c9d;background:transparent}
+.screen-controls .call-primary button>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.screen-controls .dock-toggle{margin:0 auto;height:28px;min-height:28px}
+.screen-controls .dock-more>summary{margin:0 auto;list-style:none;height:32px;min-height:32px}.screen-controls summary::-webkit-details-marker{display:none}
+.screen-controls .call-utilities{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:0;padding:0;border:0}
+.screen-controls .call-utilities button{background:transparent;border:0;color:#fff;min-height:40px;margin:0;text-shadow:0 1px 3px #000}
+.screen-controls button:focus-visible,.screen-controls summary:focus-visible{outline:2px solid #c8ff58;outline-offset:2px}
+.screen-controls button:hover,.screen-controls summary:hover{color:#c8ff58}.screen-controls button:disabled{opacity:.4;cursor:wait}
+.stage-content:has(.screen-controls) .stage-empty{padding-bottom:150px}
+@media(max-width:600px){.screen-controls .call-primary{gap:4px}.screen-controls .call-utilities{gap:2px}.screen-controls .call-utilities button{font-size:11px;padding:6px}.screen-controls{width:calc(100% - 16px)}}

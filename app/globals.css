@@ -160,3 +160,18 @@ button:disabled{opacity:.5;box-shadow:none;transform:none}
 .room-active .stage-empty{padding:8px 12px 115px!important}.room-active .stage-symbol{width:48px;height:48px;margin-bottom:8px;border-radius:12px}.room-active .stage-empty h2{font-size:18px}.room-active .stage-empty p{margin:6px 0 10px;font-size:12px}
 @media(max-height:650px){.room-active .stage-empty .stage-symbol,.room-active .stage-empty p{display:none}.room-active .stage-empty h2{font-size:16px;margin-bottom:8px}.room-active .camera-strip{max-height:60px}.room-active .camera-tile{height:55px}.room-active .site-footer{display:none}}
 @media(max-width:860px){.workspace-shell .room-active .room-layout{grid-template-areas:'main' 'people';grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.workspace-shell .room-active .people-panel{display:block}.room-active .mode-badge{display:none}.room-active .room-heading h1{max-width:52vw;font-size:18px}.room-active .site-footer>span{display:none}.room-active .site-footer{justify-content:flex-end}.room-active .stage-top .quality-control{width:auto;font-size:10px}.room-active .stage-top .quality-control select{max-width:120px}.room-active .stage-empty h2,.room-active .stage-empty p,.room-active .stage-symbol{display:none}}
+
+/* Preserve breathing room below the stage and keep overlay buttons stationary. */
+.workspace-shell .room-active .in-room{padding:6px 16px 24px;gap:8px}
+.room-active .site-footer{min-height:28px;padding:5px 16px}
+.screen-controls{bottom:20px;display:flex;flex-direction:column;align-items:center;gap:4px;filter:none;max-width:calc(100% - 24px)}
+.screen-controls [hidden]{display:none!important}
+.screen-controls>.dock-toggle{order:2;height:32px;min-height:32px;margin:0;flex-shrink:0}
+.screen-controls>div:not([hidden]){display:flex;align-items:center;gap:6px}
+.screen-controls .call-primary{flex-wrap:nowrap;gap:6px;flex-shrink:0}
+.screen-controls .dock-more{position:relative;flex-shrink:0}
+.screen-controls .dock-more-button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:transparent;color:#fff;padding:8px;border-radius:10px}
+.screen-controls button svg{filter:drop-shadow(0 1px 2px #000)}
+.screen-controls .call-utilities{position:absolute;bottom:calc(100% + 12px);right:0;width:230px;max-width:calc(100vw - 48px);display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.screen-controls .call-utilities button{min-height:44px;width:100%;justify-content:center;padding:8px;text-shadow:0 1px 3px #000,0 0 5px #000}
+@media(max-width:600px){.workspace-shell .room-active .in-room{padding:6px 10px 18px}.screen-controls{bottom:14px;width:auto}.screen-controls .call-primary{gap:0}.screen-controls>div:not([hidden]){gap:0}.screen-controls .call-utilities{right:0;width:220px}}

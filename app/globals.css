@@ -215,3 +215,7 @@ button:disabled{opacity:.5;box-shadow:none;transform:none}
 .stage:fullscreen .screen-controls{bottom:24px!important}
 @media(max-width:600px){.room-active .room-heading{height:auto;min-height:52px;gap:6px}.room-active .room-info{gap:4px;flex-wrap:wrap;justify-content:flex-end}.room-active .room-info .mode-badge{display:none}.room-active .room-info button{font-size:11px;padding:6px;min-height:32px}.room-active .room-heading h1{font-size:16px}.channel-picker{padding:6px 10px}.channel-picker small{display:none}.social-person{flex-wrap:wrap}}
 @media(max-height:500px) and (orientation:landscape){.channel-picker{padding:4px 8px}.channel-picker small,.channel-picker label{display:none}.room-active .room-heading{min-height:38px}.room-active .room-info button{padding:4px 7px}}
+
+/* Hide scrollbar chrome while retaining wheel, touch and keyboard scrolling. */
+html,body,body *{scrollbar-width:none!important;-ms-overflow-style:none!important}
+html::-webkit-scrollbar,body::-webkit-scrollbar,body *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}

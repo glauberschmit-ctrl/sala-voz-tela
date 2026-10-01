@@ -7,7 +7,8 @@ const store={prepare(query){let args=[];return {bind(...values){args=values;retu
 const output=ts.transpileModule(fs.readFileSync('app/api/room/route.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 let loginUser={userId:'test-account',email:'test@example.test'};
 const appearance={};new Function('exports',ts.transpileModule(fs.readFileSync('app/media/name-style.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(appearance);
-const exports={};new Function('require','exports',output)(name=>{if(name==='@/app/media/name-style')return appearance;if(name==='@/app/auth')return {getUser:async()=>loginUser};if(name==='@/db/operations')return {audit:async()=>{},requestLimit:async()=>false,moderateText:async()=>{},observe:async(req,fn)=>fn(req)};if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
+const gifProvider={};new Function('exports',ts.transpileModule(fs.readFileSync('app/api/gifs/provider.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(gifProvider);
+const exports={};new Function('require','exports',output)(name=>{if(name==='@/app/api/gifs/provider')return gifProvider;if(name==='@/app/media/name-style')return appearance;if(name==='@/app/auth')return {getUser:async()=>loginUser};if(name==='@/db/operations')return {audit:async()=>{},requestLimit:async()=>false,moderateText:async()=>{},observe:async(req,fn)=>fn(req)};if(name!=='@/db/raw')throw new Error('Unexpected import');return {db:()=>store,iceConfig:async()=>({iceServers:[]}),deleteRoomFiles:async()=>{}}},exports);
 async function request(b,origin='https://test.example'){const r=await exports.POST(new Request('https://test.example/api/room',{method:'POST',headers:{'content-type':'application/json',origin},body:JSON.stringify(b)}));return {status:r.status,data:await r.json()}}
 assert.equal((await request({action:'create',name:'QA',title:'Test',mode:'conversation'},'https://other.example')).status,403);
 const c=await request({action:'create',name:'QA Host',title:'QA Apresentação',mode:'presentation'});assert.equal(c.status,200);
@@ -180,4 +181,16 @@ assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM voice_channels WHERE room=?'
 assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM server_accounts WHERE room=?').get(pa.room).n,0);
 console.log('PASS: registered-account servers, owner rejoin, leave versus close, channel permissions and media isolation, stale signaling, bot idempotence and cascading deletion.');
 
+}
+
+{
+ const g=(await request({action:'create',name:'GIF tester',title:'GIFs',mode:'conversation'})).data;
+ const auth={room:g.room.id,id:g.id,token:g.token},clientId='7'.repeat(32),gif='https://static.klipy.com/catalog/test.gif';
+ assert.equal((await request({...auth,action:'chat_send',body:'',gifUrl:'https://evil.test/test.gif',clientId})).status,400);
+ const sent=await request({...auth,action:'chat_send',body:'',gifUrl:gif,clientId});assert.equal(sent.status,200);assert.equal(sent.data.message.gifUrl,gif);
+ assert.equal((await request({...auth,action:'chat_send',body:'',gifUrl:gif,clientId})).data.message.id,sent.data.message.id);
+ assert.equal((await request({...auth,action:'chat_list'})).data.messages[0].gifUrl,gif);
+ assert.equal((await request({...auth,action:'chat_send',body:'',gifUrl:gif,clientId:'8'.repeat(32)})).status,429);
+ await request({...auth,action:'close'});
+ console.log('PASS: direct KLIPY GIF sending, host validation, history, retries and rate limiting without media download.');
 }

@@ -1,3 +1,4 @@
+import {gifUrl} from '@/app/api/gifs/provider';
 import {nameColors,nameFonts} from '@/app/media/name-style';
 import {getUser} from '@/app/auth';
 import {audit,observe,requestLimit,moderateText} from '@/db/operations';
@@ -65,12 +66,14 @@ async function handle(req:Request){
    if(me.seen<=now-180000)return reply({error:'Reconecte à sala para usar o chat.'},401);
    if(b.action==='chat_send'){
     const body=typeof b.body==='string'?b.body.trim():'';
+    const selectedGif=b.gifUrl==null?null:gifUrl(b.gifUrl);
+    if(b.gifUrl!=null&&(!selectedGif||String(b.gifUrl).length>2000))return reply({error:'Selecione um GIF válido no catálogo KLIPY.'},400);
     const clientId=typeof b.clientId==='string'?b.clientId:'';
-    if(!body||body.length>2000||!/^[a-f0-9]{32}$/.test(clientId))return reply({error:'Escreva uma mensagem de até 2.000 caracteres.'},400);
-    const lookup=()=>d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND sender=? AND client_id=?').bind(room.id,me.id,clientId).first();
+    if((!body&&!selectedGif)||body.length>2000||!/^[a-f0-9]{32}$/.test(clientId))return reply({error:'Escreva uma mensagem de até 2.000 caracteres.'},400);
+    const lookup=()=>d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize,gif_url AS gifUrl FROM chat_messages WHERE room=? AND sender=? AND client_id=?').bind(room.id,me.id,clientId).first();
     const existing=await lookup();if(existing)return reply({message:existing});
-    await moderateText(body,me.id,room.id);
-    const result=await d.prepare('INSERT INTO chat_messages (room,sender,name,client_id,body,created) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM chat_messages WHERE room=? AND sender=? AND created>?) ON CONFLICT(room,sender,client_id) DO NOTHING').bind(room.id,me.id,me.name,clientId,body,now,room.id,me.id,now-1000).run();
+    if(body)await moderateText(body,me.id,room.id);
+    const result=await d.prepare('INSERT INTO chat_messages (room,sender,name,client_id,body,created,gif_url) SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM chat_messages WHERE room=? AND sender=? AND created>?) ON CONFLICT(room,sender,client_id) DO NOTHING').bind(room.id,me.id,me.name,clientId,body,now,selectedGif,room.id,me.id,now-1000).run();
     const message=await lookup();if(!message&&!result.meta.changes)return reply({error:'Aguarde um segundo antes de enviar outra mensagem.'},429);
     if(result.meta.changes&&body.startsWith('/')){
      const command=body.split(/\s+/)[0].toLowerCase();
@@ -83,10 +86,10 @@ async function handle(req:Request){
    const after=Number.isSafeInteger(b.after)&&b.after>=0?b.after:null;
    const before=Number.isSafeInteger(b.before)&&b.before>0?b.before:null;
    if(after!==null){
-    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id>? ORDER BY id LIMIT 100').bind(room.id,after).all();
+    const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize,gif_url AS gifUrl FROM chat_messages WHERE room=? AND id>? ORDER BY id LIMIT 100').bind(room.id,after).all();
     return reply({messages:messages.results});
    }
-   const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
+   const messages=await d.prepare('SELECT id,sender,name,client_id AS clientId,body,created,attachment_mime AS attachmentMime,attachment_name AS attachmentName,attachment_size AS attachmentSize,gif_url AS gifUrl FROM chat_messages WHERE room=? AND id<? ORDER BY id DESC LIMIT 51').bind(room.id,before??Number.MAX_SAFE_INTEGER).all();
    return reply({messages:messages.results.slice(0,50).reverse(),hasOlder:messages.results.length>50});
   }
   if(b.action==='profile'){

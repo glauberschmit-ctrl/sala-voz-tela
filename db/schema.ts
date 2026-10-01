@@ -8,7 +8,7 @@ export const chatMessages=sqliteTable('chat_messages',{
  room:text('room').notNull().references(()=>rooms.id,{onDelete:'cascade'}),
  sender:text('sender').notNull(),name:text('name').notNull(),
  clientId:text('client_id').notNull(),body:text('body').notNull(),created:integer('created').notNull(),
- attachmentKey:text('attachment_key'),attachmentMime:text('attachment_mime'),attachmentName:text('attachment_name'),attachmentSize:integer('attachment_size')
+ gifUrl:text('gif_url'),attachmentKey:text('attachment_key'),attachmentMime:text('attachment_mime'),attachmentName:text('attachment_name'),attachmentSize:integer('attachment_size')
 },t=>[index('idx_chat_room_id').on(t.room,t.id),index('idx_chat_sender_created').on(t.room,t.sender,t.created),uniqueIndex('idx_chat_retry').on(t.room,t.sender,t.clientId)]);
 
 export const auditEvents=sqliteTable('audit_events',{id:integer('id').primaryKey({autoIncrement:true}),created:integer('created').notNull(),event:text('event').notNull(),actor:text('actor'),room:text('room'),status:integer('status').notNull(),detail:text('detail').notNull().default('')},t=>[index('idx_audit_created').on(t.created)]);

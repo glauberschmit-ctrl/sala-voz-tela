@@ -3,11 +3,11 @@ import {useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
 import {localId} from './saved-rooms';
 import ChatImage from './chat-image';
 import {nameStyle} from './name-style';
-import GifPicker from './gif-picker';
+import GifPicker,{type GifItem} from './gif-picker';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import {emojiGroups,chatPollDelay} from './chat-options';
 import {MessageSquare,Send,ChevronDown,ChevronUp,Paperclip,X,Smile,Film} from 'lucide-react';
-type Message={id:number;sender:string;name:string;clientId:string;body:string;created:number;attachmentMime?:string;attachmentName?:string};
+type Message={id:number;sender:string;name:string;clientId:string;body:string;created:number;gifUrl?:string;attachmentMime?:string;attachmentName?:string};
 type Session={room:{id:string};id:string;token:string};
 const merge=(old:Message[],incoming:Message[])=>[...new Map([...old,...incoming].map(m=>[m.id,m])).values()].sort((a,b)=>a.id-b.id);
 export default function RoomChat({session,active=true,onUnread,members=[]}:{members?:Array<{id:string;nameColor?:string;nameFont?:string}>;session:Session;active?:boolean;onUnread?:(n:number)=>void}){
@@ -19,10 +19,9 @@ export default function RoomChat({session,active=true,onUnread,members=[]}:{memb
  const [pending,setPending]=useState<Message|null>(null);
  const [messages,setMessages]=useState<Message[]>([]),[draft,setDraft]=useState(''),[open,setOpen]=useState(true),[unread,setUnread]=useState(0);
  const [loading,setLoading]=useState(true),[sending,setSending]=useState(false),[older,setOlder]=useState(false),[loadingOlder,setLoadingOlder]=useState(false),[error,setError]=useState(''),[connection,setConnection]=useState('');
- const [attachment,setAttachment]=useState<File|null>(null),[attachmentPreview,setAttachmentPreview]=useState('');
- useEffect(()=>{if(!attachment){setAttachmentPreview('');return}const url=URL.createObjectURL(attachment);setAttachmentPreview(url);return()=>URL.revokeObjectURL(url)},[attachment]);const fileInput=useRef<HTMLInputElement>(null);
+ const [attachment,setAttachment]=useState<GifItem|null>(null);
  const list=useRef<HTMLDivElement>(null),input=useRef<HTMLTextAreaElement>(null),isOpen=useRef(true),atBottom=useRef(true),scrollNext=useRef(false),seen=useRef(new Set<number>());
- const preserved=useRef<{height:number;top:number}|null>(null),retry=useRef<{body:string;clientId:string}|null>(null),sendLock=useRef(false);
+ const preserved=useRef<{height:number;top:number}|null>(null),retry=useRef<{body:string;clientId:string;gifUrl?:string}|null>(null),sendLock=useRef(false);
  const abort=useRef<AbortController|null>(null);
  useEffect(()=>{notify.current?.(unread)},[unread]);
  useEffect(()=>{if(active&&isOpen.current&&atBottom.current){setUnread(0);if(list.current)list.current.scrollTop=list.current.scrollHeight}},[active]);
@@ -75,14 +74,12 @@ export default function RoomChat({session,active=true,onUnread,members=[]}:{memb
  async function send(){
   const body=draft.trim();if((!body&&!attachment)||body.length>2000||sendLock.current)return;
   sendLock.current=true;setSending(true);setError('');
-  if(retry.current?.body!==body)retry.current={body,clientId:localId()};
+  if(retry.current?.body!==body||retry.current?.gifUrl!==attachment?.url)retry.current={body,clientId:localId(),...(attachment?{gifUrl:attachment.url}:{})};
   scrollNext.current=true;setPending({id:-1,sender:session.id,name:'Você',clientId:retry.current.clientId,body:body||'Enviando imagem…',created:Date.now()});
   try{
-   let data:any;
-   if(attachment){const form=new FormData();for(const [key,value] of Object.entries({...auth,...retry.current!}))form.append(key,value);form.append('file',attachment);const response=await fetch('/api/chat-attachment',{method:'POST',body:form,signal:abort.current?AbortSignal.any([abort.current.signal,AbortSignal.timeout(60000)]):AbortSignal.timeout(60000)});data=await response.json();if(!response.ok)throw new Error(data.error||'Não foi possível enviar a imagem.');}
-   else data=await request({action:'chat_send',...retry.current},abort.current?.signal);
+   const data=await request({action:'chat_send',...retry.current},abort.current?.signal);
    if(abort.current?.signal.aborted)return;
-   receive([data.message]);setDraft('');setAttachment(null);if(fileInput.current)fileInput.current.value='';retry.current=null;bottom();
+   receive([data.message]);setDraft('');setAttachment(null);retry.current=null;bottom();
   }catch(e){if(!abort.current?.signal.aborted)setError(e instanceof Error?e.message:'Mensagem não enviada. Tente novamente.')}finally{setPending(null);sendLock.current=false;setSending(false);input.current?.focus()}
  }
  return <section className="room-chat" aria-label="Chat da sala">
@@ -92,12 +89,12 @@ export default function RoomChat({session,active=true,onUnread,members=[]}:{memb
     {older&&<button className="chat-older" type="button" onClick={()=>void loadOlder()} disabled={loadingOlder}>{loadingOlder?'Carregando…':'Carregar mensagens anteriores'}</button>}
     {loading&&<p className="chat-empty">Carregando conversa…</p>}
     {!loading&&!messages.length&&!pending&&<p className="chat-empty">Ainda não há mensagens. Comece a conversa!</p>}
-    {[...messages,...(pending&&!messages.some(m=>m.sender===pending.sender&&m.clientId===pending.clientId)?[pending]:[])].map(m=><article className={'chat-message '+(m.sender===session.id?'own':'')} key={m.sender+m.clientId}><header><strong style={nameStyle(members.find(p=>p.id===m.sender)?.nameColor,members.find(p=>p.id===m.sender)?.nameFont)}>{m.sender===session.id?'Você':m.name}</strong><time dateTime={new Date(m.created).toISOString()} title={new Date(m.created).toLocaleString('pt-BR')}>{new Date(m.created).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</time></header><p>{m.body}</p>{m.id===-1&&<small className="chat-pending" role="status">Enviando…</small>}{m.attachmentMime&&<ChatImage messageId={m.id} name={m.attachmentName||'Imagem'} auth={auth}/>}</article>)}
+    {[...messages,...(pending&&!messages.some(m=>m.sender===pending.sender&&m.clientId===pending.clientId)?[pending]:[])].map(m=><article className={'chat-message '+(m.sender===session.id?'own':'')} key={m.sender+m.clientId}><header><strong style={nameStyle(members.find(p=>p.id===m.sender)?.nameColor,members.find(p=>p.id===m.sender)?.nameFont)}>{m.sender===session.id?'Você':m.name}</strong><time dateTime={new Date(m.created).toISOString()} title={new Date(m.created).toLocaleString('pt-BR')}>{new Date(m.created).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</time></header><p>{m.body}</p>{m.id===-1&&<small className="chat-pending" role="status">Enviando…</small>}{m.gifUrl&&<div className="chat-image"><img src={m.gifUrl} alt="GIF do catálogo KLIPY" loading="lazy" referrerPolicy="no-referrer"/><small>Powered by KLIPY</small></div>}{m.attachmentMime&&<ChatImage messageId={m.id} name={m.attachmentName||'Imagem'} auth={auth}/>}</article>)}
    </div>
    {unread>0&&<button type="button" className="chat-new" onClick={bottom}>Ver {unread} mensagem{unread===1?' nova':'s novas'} ↓</button>}
    {connection&&<p className="chat-status" role="status">{connection}</p>}
    {error&&<p className="chat-error" role="alert">{error} Seu texto foi mantido.</p>}
-   {attachment&&<div className="chat-selected">{attachmentPreview&&<img src={attachmentPreview} alt="Prévia do anexo"/>}<span>{attachment.name} · {(attachment.size/1024/1024).toFixed(1)} MB</span><button type="button" aria-label="Remover imagem" disabled={sending} onClick={()=>{setAttachment(null);retry.current=null;if(fileInput.current)fileInput.current.value=''}}><X size={15}/></button></div>}
+   {attachment&&<div className="chat-selected"><img src={attachment.url} alt="Prévia do GIF" referrerPolicy="no-referrer"/><span>{attachment.title}</span><button type="button" aria-label="Remover GIF" disabled={sending} onClick={()=>{setAttachment(null);retry.current=null}}><X size={15}/></button></div>}
    <Tabs className="chat-reaction-tabs" value={emojiOpen?'emoji':gifOpen?'gif':''} onValueChange={value=>{setEmojiOpen(value==='emoji');setGifOpen(value==='gif')}}><TabsList className="chat-reaction-tablist" aria-label="Emojis e GIFs"><TabsTrigger value="emoji" aria-label="Emojis" title="Emojis"><Smile size={18}/><span className="sr-only">Emojis</span></TabsTrigger><TabsTrigger value="gif" aria-label="GIFs" title="GIFs" disabled={sending}><Film size={18}/><span className="sr-only">GIFs</span></TabsTrigger></TabsList>
 
    <TabsContent value="gif">{gifOpen&&<GifPicker auth={auth} onClose={()=>setGifOpen(false)} onChoose={file=>{setAttachment(file);retry.current=null;setError('')}}/>}</TabsContent>
@@ -108,7 +105,7 @@ export default function RoomChat({session,active=true,onUnread,members=[]}:{memb
     <textarea id={id+'-message'} ref={input} value={draft} maxLength={2000} rows={3} placeholder="Escreva uma mensagem…" disabled={sending} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void send()}}}/>
 
     <div className="chat-send-row"><small>{draft.length}/2000 · Shift+Enter: nova linha</small><button type="submit" disabled={sending||(!draft.trim()&&!attachment)} aria-label="Enviar mensagem">{sending?'Enviando…':'Enviar'}<Send size={15}/></button></div>
-   </form><p className="chat-retention">GIFs do catálogo: até 5 MB. O histórico e os anexos são apagados ao encerrar a sala.</p>
+   </form><p className="chat-retention">GIFs exibidos diretamente pela KLIPY. O histórico é apagado ao encerrar a sala.</p>
   </div>}
  </section>;
 }
